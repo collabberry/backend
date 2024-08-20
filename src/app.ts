@@ -1,0 +1,50 @@
+import 'reflect-metadata';
+import { config as dotnev_config } from 'dotenv';
+dotnev_config();
+import express from 'express';
+import bodyParser from 'body-parser';
+import { injectable } from 'inversify';
+import { PlaceholderRouter } from './routers/placeholder.router.js';
+import cors from 'cors';
+
+@injectable()
+export class App {
+
+    constructor(
+        private placeholderRouter: PlaceholderRouter
+    ) {
+        this._app = express();
+        this.config();
+    }
+
+    public get app(): express.Application {
+        return this._app;
+    }
+    private _app: express.Application;
+
+    private config(): void {
+        // parse application/x-www-form-urlencoded
+        this._app.use(bodyParser.urlencoded({ extended: false }));
+
+        // parse application/json
+        this._app.use(bodyParser.json());
+
+        // support application/x-www-form-urlencoded post data
+        this._app.use(bodyParser.urlencoded({ extended: false }));
+
+        // this._app.use(cookieParser());
+
+        let allowedOrigins = [/localhost:\d{4}$/, process.env.FRONT_URL];
+        if (process.env.CORS_ORIGINS) {
+            allowedOrigins = allowedOrigins.concat(process.env.CORS_ORIGINS.split(','));
+        }
+
+        this._app.use(cors());
+
+        // Initialize app routes
+        this._initRoutes();
+    }
+    _initRoutes(): void {
+        this._app.use('/api/placholder', this.placeholderRouter.router);
+    }
+}
