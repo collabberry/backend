@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: collabberry-backend
+    build: .
+    ports:
+      - '3000:3000' # Map port 3000 on the host to port 3000 in the container
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/collabberry # Environment variable for MongoDB connection
+    depends_on:
+      - mongo # Ensure MongoDB is started before the app
+    volumes:
+      - .:/usr/src/app # Bind the current directory to the container's app directory
+    networks:
+      - collabberry-backend-network
+
+  mongo:
+    container_name: collabberry-mongo
+    image: mongo:5.0 # Use MongoDB version 5.0
+    ports:
+      - '27017:27017' # Map MongoDB default port 27017
+    networks:
+      - collabberry-backend-network
+    volumes:
+      - mongo-data:/data/db # Persist MongoDB data in named volume
+
+networks:
+  collabberry-backend-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+    driver: local

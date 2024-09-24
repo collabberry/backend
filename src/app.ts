@@ -4,14 +4,16 @@ dotnev_config();
 import express from 'express';
 import bodyParser from 'body-parser';
 import { injectable } from 'inversify';
-import { PlaceholderRouter } from './routers/placeholder.router.js';
+import { UserRouter } from './routers/user.router.js';
+import { OrgRouter } from './routers/org.router.js';
 import cors from 'cors';
 
 @injectable()
 export class App {
 
     constructor(
-        private placeholderRouter: PlaceholderRouter
+        private userRouter: UserRouter,
+        private orgRouter: OrgRouter
     ) {
         this._app = express();
         this.config();
@@ -45,6 +47,7 @@ export class App {
         this._initRoutes();
     }
     _initRoutes(): void {
-        this._app.use('/api/placholder', this.placeholderRouter.router);
+        this._app.use('/api/users', this.userRouter.router);
+        this._app.use('/api/orgs', this.orgRouter.router);
     }
 }
