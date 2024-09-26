@@ -13,12 +13,12 @@ services:
   backend:
     <<: *common
     container_name: backend
-    build: .
+    image: hristomanolov/collabberry-backend:latest
     environment:
       PORT: 3000
       MONGO_URI: mongodb://mongo:27017/collabberry
     ports:
-      - 3000:3000
+      - 80:3000
     depends_on:
       - mongo
 
@@ -27,14 +27,10 @@ services:
     container_name: mongo
     image: mongo:5.0
     volumes:
-      - mongo-data:/data/db
+      - ./mongo-data:/data/db
     ports:
       - 27017:27017
 
 networks:
   collabberry-backend:
     driver: bridge
-
-volumes:
-  mongo-data:
-    driver: local
