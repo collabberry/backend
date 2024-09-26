@@ -13,6 +13,7 @@ import { injectable } from 'inversify';
 import { CreatedResponseModel } from '../response_models/created_response_model.js';
 import { ResponseModel } from '../response_models/response_model.js';
 import { IUser } from '../data/models/user.model.js';
+import { SiweMessage } from 'siwe';
 dotenv.config();  // Load the environment variables from .env
 
 const walletAddressSchema = Joi.object({
@@ -167,20 +168,16 @@ export class UserService {
         return ResponseModel.createSuccess({ nonce });
     }
 
-    public async verifySignature(walletAddress: string, signature: string): Promise<ResponseModel<any | null>> {
-        const walletNonce = await WalletNonce.findOne({ walletAddress });
-        if (!walletNonce) {
-            return ResponseModel.createError(new Error('Nonce not found for this wallet address'), 404);
-        }
+    public async verifySignature(message: any, signature: string): Promise<ResponseModel<any | null>> {
 
-        // Recover the address from the signed message
-        const recoveredAddress = ethers.utils.verifyMessage(walletNonce.nonce, signature);
-        if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        const siweMessage = new SiweMessage(message);
+        try {
+            const res = await siweMessage.verify({ signature });
+            console.log(res);
+            const token = jwt.sign({ walletAddress: message.address }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+            return ResponseModel.createSuccess({ token }, 200);
+        } catch {
             return ResponseModel.createError(new Error('Invalid signature'), 401);
         }
-
-        // Signature is valid, generate a JWT for the user
-        const token = jwt.sign({ walletAddress }, process.env.JWT_SECRET!, { expiresIn: '1h' });
-        return ResponseModel.createSuccess({ token }, 200);
     }
 }

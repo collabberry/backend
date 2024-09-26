@@ -17,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "cors": "2.8.5",
+    "siwe": "^2.3.2",
     "crypto": "1.0.1",
     "dotenv": "^16.4.5",
     "ethers": "^5.5.0",

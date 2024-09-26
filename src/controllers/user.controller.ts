@@ -31,14 +31,14 @@ export class UserController {
      */
     public verifySignature = async (req: Request, res: Response) => {
         try {
-            const { walletAddress, signature } = req.body;
+            const { message, signature } = req.body;
 
             const isValid = verifySignatureSchema.validate(req.body);
             if (isValid.error) {
                 return res.status(400).json({ message: isValid.error.message });
             }
             // Verify the signature and authenticate the user
-            const responseModel = await this.userService.verifySignature(walletAddress, signature);
+            const responseModel = await this.userService.verifySignature(message, signature);
             res.status(responseModel.statusCode).json(handleResponse(responseModel));
         } catch (error) {
             console.error('Error verifying signature:', error);
