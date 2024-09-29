@@ -86,7 +86,7 @@ export class UserService {
 
     public async getByWalletAddress(walletAddress: string): Promise<ResponseModel<IUser | null>> {
         const user = await
-            User.findOne({ address: walletAddress });
+            User.findOne({ address: walletAddress.toLowerCase() });
         if (!user) {
             return ResponseModel.createError(new Error('User not found'), 404);
         }

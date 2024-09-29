@@ -1,12 +1,13 @@
 import { ethers } from 'ethers';
 
 import dotenv from 'dotenv';
+import { SiweMessage } from 'siwe';
 
 // Initialize configuration
 dotenv.config();
 
 // Function to sign the message
-async function signMessage(message: string): Promise<string | undefined> {
+async function signMessage(nonce: string, address: string): Promise<string | undefined> {
     try {
 
         // Replace this with your private key for testing
@@ -14,9 +15,21 @@ async function signMessage(message: string): Promise<string | undefined> {
 
         // Create a wallet instance from the private key
         const wallet = new ethers.Wallet(privateKey!);
+
+        const message = new SiweMessage({
+            domain: 'localhost:3000',
+            address,
+            statement: nonce,
+            uri: 'http://localhost:3000',
+            version: '1',
+            chainId: 1
+        });
+
+        const prep = message.prepareMessage();
+
         // Sign the message
-        const signature = await wallet.signMessage(message);
-        console.log(`Message: ${message}`);
+        const signature = await wallet.signMessage(prep);
+        console.log(`Message: ${JSON.stringify(message)}`);
         console.log(`Signature: ${signature}`);
 
         return signature;
@@ -36,6 +49,7 @@ async function createWallet(): Promise<void> {
 
 // Define the message (nonce) to sign
 const message = process.argv[2];
+const address = process.env.TEST_PUB_KEY;
 
-signMessage(message);
+signMessage(message, address!);
 // createWallet();
