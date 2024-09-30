@@ -72,6 +72,11 @@ export class UserService {
             return ResponseModel.createError(new Error('Username already exists'), 400);
         }
 
+        const userByEmail = await User.findOne({ email: userData.email });
+        if(userByEmail) {
+            return ResponseModel.createError(new Error('Email already registered'), 400);
+        }
+
         // Create a new user linked to the organization from the invitation
         const user = new User({
             ...userData,
