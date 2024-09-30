@@ -28,4 +28,19 @@ export class OrganizationController {
             res.status(500).send('Internal Server Error');
         }
     }
+
+    /**
+     * Generate a unique invitation link for the organization
+     */
+    public getInvitationToken = async (req: any, res: Response) => {
+        try {
+            const invitationToken = await this.organizationService
+                .generateInvitationLink(req.user.walletAddress);
+            res.status(invitationToken.statusCode).json(handleResponse(invitationToken));
+
+        } catch (error) {
+            console.error('Error creating an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
 }
