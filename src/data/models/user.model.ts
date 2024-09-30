@@ -1,8 +1,9 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { Role } from '../../models/roles.js';
 
 interface IOrganizationDetails {
     organization: mongoose.Schema.Types.ObjectId;  // Reference to the organization
-    roles: string[];  // Roles within that organization
+    roles: Role[];  // Roles within that organization
     agreement?: mongoose.Schema.Types.ObjectId;  // Agreement specific to this organization
 }
 
@@ -22,9 +23,9 @@ const UserSchema: Schema = new Schema({
     organizationDetails: [{
         organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
         roles: {
-            type: [String],
-            enum: ['admin', 'contributor'],  // Only allow 'admin' or 'contributor'
-            default: ['contributor']
+            type: [Number],
+            enum: [1, 2],
+            default: [Role.Contributor]
         },
         agreement: { type: mongoose.Schema.Types.ObjectId, ref: 'Agreement', required: false }
     }]

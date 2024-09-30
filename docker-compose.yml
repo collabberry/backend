@@ -15,6 +15,8 @@ services:
     container_name: backend
     build: .
     environment:
+      JWT_SECRET: secret
+      INVITATION_URL: "http://localhost:3000/invitation"
       PORT: 3000
       MONGO_URI: mongodb://mongo:27017/collabberry
     ports:

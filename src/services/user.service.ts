@@ -14,6 +14,7 @@ import { CreatedResponseModel } from '../response_models/created_response_model.
 import { ResponseModel } from '../response_models/response_model.js';
 import { IUser } from '../data/models/user.model.js';
 import { SiweMessage } from 'siwe';
+import { Role } from '../models/roles.js';
 dotenv.config();  // Load the environment variables from .env
 
 const walletAddressSchema = Joi.object({
@@ -73,7 +74,7 @@ export class UserService {
         }
 
         const userByEmail = await User.findOne({ email: userData.email });
-        if(userByEmail) {
+        if (userByEmail) {
             return ResponseModel.createError(new Error('Email already registered'), 400);
         }
 
@@ -116,7 +117,8 @@ export class UserService {
 
         // Ensure the admin belongs to the organization
         const adminUser = await User.findById(adminId);
-        if (!adminUser || !adminUser.organizationDetails?.find(x => x.organization === organization._id)) {
+        if (!adminUser || !adminUser.organizationDetails?.
+            find(x => x.organization === organization._id && x.roles.includes(Role.Admin))) {
             throw new Error(
                 'Only organization admins can generate invitation links.'
             );
@@ -135,7 +137,7 @@ export class UserService {
         await invitation.save();
 
         // Return the invitation link (frontend URL structure can be customized)
-        const invitationLink = `${process.env.APP_URL}/register?token=${token}`;
+        const invitationLink = `${process.env.INVITATION_URL}/register?token=${token}`;
         return invitationLink;
     }
 
