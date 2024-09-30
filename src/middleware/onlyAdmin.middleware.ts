@@ -13,8 +13,9 @@ export const jwtMiddleware = (req: Request, res: Response, next: NextFunction) =
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        (req as any).user = decoded;  // Attach the decoded token to the request object
-        console.log((req as any).user);
+        (req as any).user = decoded;
+
+        // Attach the decoded token to the request object
         next();  // Continue to the next middleware/route handler
     } catch (err) {
         return res.status(403).json({ message: 'Invalid token.' });

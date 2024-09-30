@@ -1,9 +1,9 @@
 import { injectable } from 'inversify';
 import { Request, Response } from 'express';
 import { UserService } from '../services/user.service.js';
-import { CreateUserModel, createUserScheme } from '../models/userRegistration.model.js';
-import { handleResponse } from '../response_models/request_handler.js';
-import { verifySignatureSchema } from '../models/wallet.model.js';
+import { CreateUserModel, createUserScheme } from '../models/user/userRegistration.model.js';
+import { handleResponse } from '../models/response_models/request_handler.js';
+import { verifySignatureSchema, walletAddressSchema } from '../models/user/wallet.model.js';
 
 @injectable()
 export class UserController {
@@ -15,10 +15,13 @@ export class UserController {
      */
     public requestNonce = async (req: Request, res: Response) => {
         try {
-            const { walletAddress } = req.body;
+            const isValid = walletAddressSchema.validate(req.body);
+            if (isValid.error) {
+                return res.status(400).json({ message: isValid.error.message });
+            }
 
             // Request nonce from the AuthService
-            const responseModel = await this.userService.requestNonce(walletAddress);
+            const responseModel = await this.userService.requestNonce(req.body.walletAddress);
             res.status(responseModel.statusCode).json(handleResponse(responseModel));
         } catch (error) {
             console.error('Error requesting nonce:', error);

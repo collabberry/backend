@@ -1,26 +1,20 @@
 import { v4 as uuidv4 } from 'uuid';
-import WalletNonce from '../data/models/nonces.model.js';
-import User from '../data/models/user.model.js';
+import WalletNonce from '../entities/users/nonce.model.js';
+import User from '../entities/users/user.model.js';
 import jwt from 'jsonwebtoken';
 import Joi from 'joi';
-import Invitation from '../data/models/orgInvitation.model.js';
+import Invitation from '../entities/org/orgInvitation.model.js';
 import dotenv from 'dotenv';
-import { CreateUserModel } from '../models/userRegistration.model.js';
+import { CreateUserModel } from '../models/user/userRegistration.model.js';
 import { injectable } from 'inversify';
-import { CreatedResponseModel } from '../response_models/created_response_model.js';
-import { ResponseModel } from '../response_models/response_model.js';
-import { IUser } from '../data/models/user.model.js';
+import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
+import { ResponseModel } from '../models/response_models/response_model.js';
 import { SiweMessage } from 'siwe';
-import { UserResponseModel } from '../models/userDetails.model.js';
-import Organization from '../data/models/organization.model.js';
+import { UserResponseModel } from '../models/user/userDetails.model.js';
+import Organization from '../entities/org/organization.model.js';
 
 dotenv.config();  // Load the environment variables from .env
 
-const walletAddressSchema = Joi.object({
-    walletAddress: Joi.string()
-        .pattern(/^0x[a-fA-F0-9]{40}$/)
-        .required()
-});
 
 @injectable()
 export class UserService {
@@ -124,11 +118,6 @@ export class UserService {
      * @returns the generated nonce
      */
     public async requestNonce(walletAddress: string): Promise<ResponseModel<any | null>> {
-        // Validate the wallet address
-        const { error } = walletAddressSchema.validate({ walletAddress });
-        if (error) {
-            return ResponseModel.createError(new Error('Invalid wallet address'), 400);
-        }
 
         // Generate a unique nonce
         const nonce = uuidv4();
@@ -161,17 +150,12 @@ export class UserService {
                 return ResponseModel.createError(new Error('Invalid signature'), 401);
             }
 
-            const user = await User.findOne({ address: message.address.toLowerCase() });
-
             const userToEncode = { walletAddress: message.address } as any;
-            if (user) {
-                userToEncode.id = user._id;
-            }
-
-            const token = jwt.sign({ walletAddress: message.address }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+            console.log('userToEncode', userToEncode);
+            const token = jwt.sign(userToEncode, process.env.JWT_SECRET!, { expiresIn: '1h' });
             return ResponseModel.createSuccess({ token }, 200);
-        } catch {
-            return ResponseModel.createError(new Error('Invalid signature'), 401);
+        } catch (error: any) {
+            return ResponseModel.createError(error, 401);
         }
     }
 }

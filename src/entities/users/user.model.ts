@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { Role } from '../../models/roles.js';
+import { Role } from './role.enum.js';
 
 interface IOrganizationDetails {
     orgId: mongoose.Schema.Types.ObjectId;  // Reference to the organization

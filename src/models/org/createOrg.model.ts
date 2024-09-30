@@ -1,6 +1,4 @@
 import Joi from 'joi';
-import { CreateUserModel, createUserScheme } from './userRegistration.model.js';
-
 
 export interface CreateOrgModel {
     name: string;

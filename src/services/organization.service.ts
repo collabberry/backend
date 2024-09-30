@@ -1,13 +1,14 @@
-import User from '../data/models/user.model.js';
+import User from '../entities/users/user.model.js';
 
-import Organization from '../data/models/organization.model.js';
-import { CreateOrgModel } from '../models/createOrg.model.js';
+import { CreateOrgModel } from '../models/org/createOrg.model.js';
 import { injectable } from 'inversify';
-import { ResponseModel } from '../response_models/response_model.js';
-import { CreatedResponseModel } from '../response_models/created_response_model.js';
-import { Role } from '../models/roles.js';
+import { ResponseModel } from '../models/response_models/response_model.js';
+import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
+import { Role } from '../entities/users/role.enum.js';
 import { v4 as uuidv4 } from 'uuid';
-import Invitation from '../data/models/orgInvitation.model.js';
+import Invitation from '../entities/org/orgInvitation.model.js';
+import Organization from '../entities/org/organization.model.js';
+import { OrgModel } from '../models/org/editOrg.model.js';
 
 
 @injectable()
@@ -88,5 +89,54 @@ export class OrganizationService {
 
         return ResponseModel.createSuccess({ invitationToken: token });
     }
+
+
+    public async editOrganization(
+        walletAddress: string,
+        orgModel: OrgModel
+    ): Promise<ResponseModel<CreatedResponseModel | null>> {
+
+        const admin = await User.findOne({ address: walletAddress.toLowerCase() });
+        if (!admin || !admin.organization || !(admin.organization.roles.indexOf(Role.Admin) !== -1)) {
+            return ResponseModel.createError
+                (new Error('Only organization admins can update organization details.'), 401);
+        }
+
+        const org = await Organization.findOne({ name: orgModel.name });
+
+        if (!org) {
+            return ResponseModel.createError(new Error('Organization not found!'), 404);
+        }
+
+        org.name = orgModel.name;
+        org.logo = orgModel.logo;
+        org.par = orgModel.par;
+        org.cycle = orgModel.cycle;
+        org.startDate = orgModel.startDate;
+
+        org.save();
+
+        return ResponseModel.createSuccess({ id: org._id });
+    }
+
+    public async getOrgById(orgId: string): Promise<ResponseModel<OrgModel | null>> {
+        const org = await Organization
+            .findById(orgId);
+
+        if (!org) {
+            return ResponseModel.createError(new Error('Organization not found!'), 404);
+        }
+        const orgModel: OrgModel = {
+            id: org._id,
+            name: org.name,
+            logo: org.logo,
+            par: org.par,
+            cycle: org.cycle,
+            startDate: org.startDate
+        };
+
+        return ResponseModel.createSuccess(orgModel);
+    }
+
 
 }

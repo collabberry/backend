@@ -14,6 +14,8 @@ export class OrgRouter {
 
   private init(): void {
     this._router.post('/', jwtMiddleware, this.orgController.createOrg);
+    this._router.put('/', jwtMiddleware, this.orgController.editOrg);
+    this._router.get('/:orgId', jwtMiddleware, this.orgController.getOrg);
     this._router.get('/:orgId/invitation', jwtMiddleware, this.orgController.getInvitationToken);
   }
 
