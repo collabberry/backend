@@ -102,7 +102,7 @@ export class OrganizationService {
                 (new Error('Only organization admins can update organization details.'), 401);
         }
 
-        const org = await Organization.findOne({ name: orgModel.name });
+        const org = await Organization.findById(admin.organization.orgId);
 
         if (!org) {
             return ResponseModel.createError(new Error('Organization not found!'), 404);
