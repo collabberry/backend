@@ -1,6 +1,11 @@
 import Joi from 'joi';
 import { Cycle } from '../../entities/index.js';
 import { id } from 'inversify';
+import { UserListModel } from '../user/userList.model.js';
+
+export interface OrgDetailsModel extends OrgModel {
+    contributors: UserListModel[];
+}
 
 export interface OrgModel {
     id: string;

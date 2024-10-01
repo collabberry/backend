@@ -8,7 +8,7 @@ import { Role } from '../entities/users/role.enum.js';
 import { v4 as uuidv4 } from 'uuid';
 import Invitation from '../entities/org/orgInvitation.model.js';
 import Organization from '../entities/org/organization.model.js';
-import { OrgModel } from '../models/org/editOrg.model.js';
+import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 
 
 @injectable()
@@ -119,20 +119,34 @@ export class OrganizationService {
         return ResponseModel.createSuccess({ id: org._id });
     }
 
-    public async getOrgById(orgId: string): Promise<ResponseModel<OrgModel | null>> {
+    public async getOrgById(orgId: string): Promise<ResponseModel<OrgDetailsModel | null>> {
         const org = await Organization
             .findById(orgId);
 
         if (!org) {
             return ResponseModel.createError(new Error('Organization not found!'), 404);
         }
-        const orgModel: OrgModel = {
+
+        const users = await User.find({
+            'organization.orgId': org._id
+          }).exec();
+
+        const orgModel: OrgDetailsModel = {
             id: org._id,
             name: org.name,
             logo: org.logo,
             par: org.par,
             cycle: org.cycle,
-            startDate: org.startDate
+            startDate: org.startDate,
+            contributors: users.
+                map(u => {
+                    return {
+                        walletAddress: u.address,
+                        username: u.username,
+                        profilePicture: u.profilePicture
+                    };
+                })
+
         };
 
         return ResponseModel.createSuccess(orgModel);
