@@ -3,10 +3,20 @@ export interface UserResponseModel {
     username: string;
     email: string;
     profilePicture?: string;
-    organization?: OrganizationListResponseModel | null;
+    contribution?: OrganizationContributorModel | null;
 }
 
-export interface OrganizationListResponseModel {
-    name: string;
+export interface AgreementModel {
+    roleName: string;
+    responsibilities: string;
+    marketRate: number;
+    fiatRequested: number;
+    commitment: number;
+}
+
+export interface OrganizationContributorModel {
     id: string;
+    name: string;
+    roles: string[];
+    agreement: AgreementModel;
 }

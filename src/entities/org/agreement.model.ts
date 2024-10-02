@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 interface IAgreement extends Document {
     user: mongoose.Schema.Types.ObjectId;  // Reference to the User
     organization: mongoose.Schema.Types.ObjectId;  // Reference to the Organization
-    roles: string[];
+    roleName: string;
     responsibilities: string;
     marketRate: number;
     fiatRequested: number;
@@ -14,7 +14,7 @@ interface IAgreement extends Document {
 const AgreementSchema: Schema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
-    roles: [{ type: String, required: true }],
+    roleName: { type: String, required: true },
     responsibilities: { type: String, required: true },
     marketRate: { type: Number, required: true },
     fiatRequested: { type: Number, required: true },

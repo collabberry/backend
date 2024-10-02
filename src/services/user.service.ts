@@ -12,6 +12,7 @@ import { ResponseModel } from '../models/response_models/response_model.js';
 import { SiweMessage } from 'siwe';
 import { UserResponseModel } from '../models/user/userDetails.model.js';
 import Organization from '../entities/org/organization.model.js';
+import Agreement from '../entities/org/agreement.model.js';
 
 dotenv.config();  // Load the environment variables from .env
 
@@ -89,24 +90,36 @@ export class UserService {
 
     public async getByWalletAddress(walletAddress: string): Promise<ResponseModel<UserResponseModel | null>> {
         const user = await
-            User.findOne({ address: walletAddress.toLowerCase() });
+            User.findOne({ address: walletAddress.toLowerCase() })
+                .populate({
+                    path: 'contribution.organization',
+                    model: 'Organization'
+                })
+                .populate({
+                    path: 'contribution.agreement',
+                    model: 'Agreement'
+                });
         if (!user) {
             return ResponseModel.createError(new Error('User not found'), 404);
         }
 
-        let organization: any | null = null;
-        if (user.organization) {
-            organization = await Organization.findOne(user.organization?.orgId);
-        }
-
         const responseModel = {
+            id: user._id,
             walletAddress: user.address,
             username: user.username,
             email: user.email,
             profilePicture: user.profilePicture,
-            organization: organization && {
-                name: organization!.name,
-                id: organization!._id
+            organization: user.contribution?.organization && {
+                name: (user.contribution?.organization as any).name,
+                id: (user.contribution?.organization as any)._id,
+                roles: user.contribution?.roles,
+                agreement: {
+                    marketRate: (user.contribution?.agreement as any)?.marketRate,
+                    roleName: (user.contribution?.agreement as any)?.roleName,
+                    responsibilities: (user.contribution?.agreement as any)?.responsibilities,
+                    fiatRequested: (user.contribution?.agreement as any)?.fiatRequested,
+                    commitment: (user.contribution?.agreement as any)?.commitment
+                 }
             }
         };
         return ResponseModel.createSuccess(responseModel);
@@ -151,7 +164,6 @@ export class UserService {
             }
 
             const userToEncode = { walletAddress: message.address } as any;
-            console.log('userToEncode', userToEncode);
             const token = jwt.sign(userToEncode, process.env.JWT_SECRET!, { expiresIn: '1h' });
             return ResponseModel.createSuccess({ token }, 200);
         } catch (error: any) {

@@ -4,6 +4,7 @@ import { CreateOrgModel, organizationScheme } from '../models/org/createOrg.mode
 import { OrganizationService } from '../services/organization.service.js';
 import { handleResponse } from '../models/response_models/request_handler.js';
 import { fullOrganizationScheme, OrgModel } from '../models/org/editOrg.model.js';
+import { CreateAgreementModel, createAgreementSchema } from '../models/org/createAgreement.model.js';
 
 @injectable()
 export class OrganizationController {
@@ -68,6 +69,35 @@ export class OrganizationController {
             const id = req.params.orgId;
 
             const createdResponseModel = await this.organizationService.getOrgById(id);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+
+    public addAgreement = async (req: any, res: Response) => {
+        try {
+            const agreement: CreateAgreementModel = req.body;
+            const isValid = createAgreementSchema.validate(agreement);
+            if (isValid.error) {
+                return res.status(400).json({ message: isValid.error.message });
+            }
+            const createdResponseModel = await this.organizationService.addAgreement(req.user.walletAddress, agreement);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    public getContribAgreement = async (req: any, res: Response) => {
+        try {
+            const contributorId = req.params.contributorId;
+            const createdResponseModel = await this.organizationService.getUserAgreement(contributorId);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
 
         } catch (error) {

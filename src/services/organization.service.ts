@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import Invitation from '../entities/org/orgInvitation.model.js';
 import Organization from '../entities/org/organization.model.js';
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
+import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
+import Agreement from '../entities/org/agreement.model.js';
 
 
 @injectable()
@@ -25,7 +27,8 @@ export class OrganizationService {
     ): Promise<ResponseModel<CreatedResponseModel | null>> {
 
         // Check if the user already exists (username uniqueness)
-        const creator = await User.findOne({ address: creatorAddress.toLowerCase() });
+        const creator = await User.findOne({ address: creatorAddress.toLowerCase() }).populate('contribution.organization');
+
         if (!creator) {
             return ResponseModel.createError(new Error('Creator not registered!'), 401);
         }
@@ -41,8 +44,8 @@ export class OrganizationService {
         });
         await organization.save();
 
-        creator!.organization = {
-            orgId: organization._id,
+        creator!.contribution = {
+            organization: organization._id,
             roles: [Role.Admin, Role.Contributor],
             agreement: undefined
         };
@@ -65,12 +68,12 @@ export class OrganizationService {
     ): Promise<ResponseModel<any | null>> {
 
         const adminUser = await User.findOne({ address: userWalletAddress.toLowerCase() });
-        if (!adminUser || !adminUser.organization || !(adminUser.organization.roles.indexOf(Role.Admin) !== -1)) {
+        if (!adminUser || !adminUser.contribution || !(adminUser.contribution.roles.indexOf(Role.Admin) !== -1)) {
             return ResponseModel.createError(new Error('Only organization admins can generate invitation links.'), 401);
         }
 
         // Ensure the organization exists
-        const organization = await Organization.findById(adminUser.organization.orgId);
+        const organization = await Organization.findById(adminUser.contribution.organization);
         if (!organization) {
             return ResponseModel.createError(new Error('Organization not found.'), 404);
         }
@@ -97,12 +100,12 @@ export class OrganizationService {
     ): Promise<ResponseModel<CreatedResponseModel | null>> {
 
         const admin = await User.findOne({ address: walletAddress.toLowerCase() });
-        if (!admin || !admin.organization || !(admin.organization.roles.indexOf(Role.Admin) !== -1)) {
+        if (!admin || !admin.contribution || !(admin.contribution.roles.indexOf(Role.Admin) !== -1)) {
             return ResponseModel.createError
                 (new Error('Only organization admins can update organization details.'), 401);
         }
 
-        const org = await Organization.findById(admin.organization.orgId);
+        const org = await Organization.findById(admin.contribution.organization);
 
         if (!org) {
             return ResponseModel.createError(new Error('Organization not found!'), 404);
@@ -129,7 +132,7 @@ export class OrganizationService {
 
         const users = await User.find({
             'organization.orgId': org._id
-          }).exec();
+        }).exec();
 
         const orgModel: OrgDetailsModel = {
             id: org._id,
@@ -152,5 +155,72 @@ export class OrganizationService {
         return ResponseModel.createSuccess(orgModel);
     }
 
+    public async addAgreement(walletAddress: string, agreement: CreateAgreementModel)
+        : Promise<ResponseModel<CreatedResponseModel | null>> {
+
+        const admin = await User.findOne({ address: walletAddress.toLowerCase() })
+            .populate({
+                path: 'contribution.organization',
+                model: 'Organization'
+            })
+            .populate({
+                path: 'contribution.agreement',
+                model: 'Agreement'
+            });
+
+        if (!admin || !admin.contribution || !(admin.contribution.roles.indexOf(Role.Admin) !== -1)) {
+            return ResponseModel.createError
+                (new Error('Only organization admins can update organization details.'), 401);
+        }
+
+        const agreementUser = await User.findById(agreement.userId)
+            .populate({
+                path: 'contribution.organization',
+                model: 'Organization'
+            })
+            .populate({
+                path: 'contribution.agreement',
+                model: 'Agreement'
+            });
+
+        if (!agreementUser ||
+            !agreementUser.contribution ||
+            (agreementUser!.contribution.organization as any)._id.toString() !==
+            (admin.contribution.organization as any)._id.toString()) {
+            return ResponseModel.createError(new Error('User not found or not part of the organization!'), 404);
+        }
+
+        if (agreementUser.contribution.agreement) {
+            return ResponseModel.createError(new Error('User already has an agreement!'), 400);
+        }
+
+        const newAgreement = new Agreement({
+            user: agreement.userId,
+            organization: agreementUser.contribution.organization,
+            roleName: agreement.roleName,
+            responsibilities: agreement.responsibilities,
+            marketRate: agreement.marketRate,
+            fiatRequested: agreement.fiatRequested,
+            commitment: agreement.commitment
+        });
+
+        await newAgreement.save();
+
+        agreementUser.contribution.agreement = newAgreement._id;
+        agreementUser.markModified('contribution');
+
+        await agreementUser.save();
+
+        return ResponseModel.createSuccess({ id: newAgreement._id });
+    }
+
+
+    public async getUserAgreement(userId: string)
+        : Promise<ResponseModel<any | null>> {
+
+        const agreement = await Agreement.findOne({ user: userId });
+
+        return ResponseModel.createSuccess(agreement);
+    }
 
 }
