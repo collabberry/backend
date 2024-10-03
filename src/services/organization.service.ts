@@ -132,7 +132,12 @@ export class OrganizationService {
 
         const users = await User.find({
             'organization.orgId': org._id
-        }).exec();
+        })
+            .populate({
+                path: 'contribution.agreement',
+                model: 'Agreement'
+            })
+            .exec();
 
         const orgModel: OrgDetailsModel = {
             id: org._id,
@@ -144,9 +149,17 @@ export class OrganizationService {
             contributors: users.
                 map(u => {
                     return {
+                        id: u._id,
                         walletAddress: u.address,
                         username: u.username,
-                        profilePicture: u.profilePicture
+                        profilePicture: u.profilePicture,
+                        agreement: {
+                            marketRate: (u.contribution?.agreement as any)?.marketRate,
+                            roleName: (u.contribution?.agreement as any)?.roleName,
+                            responsibilities: (u.contribution?.agreement as any)?.responsibilities,
+                            fiatRequested: (u.contribution?.agreement as any)?.fiatRequested,
+                            commitment: (u.contribution?.agreement as any)?.commitment
+                        }
                     };
                 })
 
