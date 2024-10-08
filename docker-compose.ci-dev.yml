@@ -13,6 +13,7 @@ services:
   backend:
     <<: *common
     container_name: backend
+    build: .
     image: hristomanolov/collabberry-backend:latest
     environment:
       JWT_SECRET: secret
