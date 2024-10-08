@@ -19,8 +19,8 @@ jobs:
     
     - name: Build and push Docker image
       run: |
-        docker-compose build
-        docker-compose push
+        docker compose build
+        docker compose push
 
   deploy:
     needs: build-and-push
@@ -36,7 +36,7 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
     
-    - name: Copy docker-compose.yml to EC2
+    - name: Copy the compose file to EC2
       run: |
         scp -i ~/.ssh/id_rsa docker-compose.ci-dev.yml ${{ vars.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/admin/deployment/docker-compose.yml
 
@@ -44,8 +44,8 @@ jobs:
       run: |
         ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} '
           cd /home/admin/deployment/
-          docker-compose pull
-          docker-compose up -d
+          docker compose pull
+          docker compose up -d
         '
 
     - name: Clean up SSH key
