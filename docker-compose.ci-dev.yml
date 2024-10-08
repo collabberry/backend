@@ -14,7 +14,7 @@ services:
     <<: *common
     container_name: backend
     build: .
-    image: hristomanolov/collabberry-backend:latest
+    image: collabberry/backend-app:latest
     environment:
       JWT_SECRET: secret
       INVITATION_URL: "http://localhost:3000/invitation"
