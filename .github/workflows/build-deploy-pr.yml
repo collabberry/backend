@@ -19,8 +19,8 @@ jobs:
     
     - name: Build and push Docker image
       run: |
-        docker compose build
-        docker compose push
+        docker compose -f docker-compose.ci-dev.yml build
+        docker compose -f docker-compose.ci-dev.yml push
 
   deploy:
     needs: build-and-push
