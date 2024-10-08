@@ -42,9 +42,9 @@ jobs:
 
     - name: Deploy to EC2
       run: |
-        ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} '
-          cd /home/admin/deployment/
-          docker compose pull
+        ssh -i ~/.ssh/id_rsa ${{ vars.EC2_USERNAME }}@${{ secrets.EC2_HOST }} '
+          cd /home/admin/deployment/ &&
+          docker compose pull &&
           docker compose up -d
         '
 
