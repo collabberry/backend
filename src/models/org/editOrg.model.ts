@@ -13,7 +13,7 @@ export interface OrgModel {
     logo?: string;
     par: number;
     cycle: Cycle;
-    startDate: Date;
+    nextRoundDate: Date;
 }
 
 export const fullOrganizationScheme = Joi.object({

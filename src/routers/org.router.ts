@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { injectable } from 'inversify';
 import { OrganizationController } from '../controllers/organization.controller.js';
 import { jwtMiddleware } from '../middleware/jwt.middleware.js';
+import multer from 'multer';
 
 @injectable()
 export class OrgRouter {
@@ -13,7 +14,11 @@ export class OrgRouter {
   }
 
   private init(): void {
-    this._router.post('/', jwtMiddleware, this.orgController.createOrg);
+
+    const upload = multer();
+
+    this._router.post('/', jwtMiddleware, upload.single('logo'), this.orgController.createOrg);
+    // this._router.post('/', jwtMiddleware, this.orgController.createOrg);
     this._router.put('/', jwtMiddleware, this.orgController.editOrg);
 
     this._router.get('/invitation', jwtMiddleware, this.orgController.getInvitationToken);

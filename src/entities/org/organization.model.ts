@@ -6,7 +6,9 @@ interface IOrganization extends Document {
     logo?: string;
     par: number;
     cycle: Cycle;
-    startDate: Date;
+    nextRoundDate: Date;
+    roundsActvated: boolean;
+    roundStarted: boolean;
 }
 
 const OrganizationSchema: Schema = new Schema({
@@ -14,7 +16,9 @@ const OrganizationSchema: Schema = new Schema({
     logo: { type: String, required: false },
     par: { type: Number, required: true, default: 20, min: 1, max: 100 },
     cycle: { type: Number, required: true, default: 3, enum: Cycle },
-    startDate: {
+    roundsActivated: { type: Boolean, required: true, default: false },
+    roundStarted: { type: Boolean, required: true, default: false },
+    nextRoundDate: {
         type: Date, required: true, default: () => {
             const now = new Date();
             return new Date(now.getFullYear(), now.getMonth(), 1);

@@ -5,6 +5,7 @@ import { OrganizationService } from '../services/organization.service.js';
 import { handleResponse } from '../models/response_models/request_handler.js';
 import { fullOrganizationScheme, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel, createAgreementSchema } from '../models/org/createAgreement.model.js';
+import { uploadFileToS3 } from '../utils/fileUploader.js';
 
 @injectable()
 export class OrganizationController {
@@ -16,13 +17,34 @@ export class OrganizationController {
      */
     public createOrg = async (req: any, res: Response) => {
         try {
-            const model: CreateOrgModel = req.body;
+            console.log(req.body);
+            const model: CreateOrgModel = req.body!;
             const isValid = organizationScheme.validate(model);
             if (isValid.error) {
                 return res.status(400).json({ message: isValid.error.message });
             }
-            const createdResponseModel = await this.organizationService.createOrganization
-                (req.user.walletAddress, model);
+
+            // Handle file upload (assuming the file is sent in req.file or req.files)
+            const file = (req as any).file;
+            let logoUrl: string | undefined;
+
+            if (file) {
+                const uploadResult = await uploadFileToS3({
+                    Bucket: process.env.S3_BUCKET_NAME!, // Ensure your bucket name is in env variables
+                    Key: `organization-logos/${file.originalname}`, // Customize the path and filename as needed
+                    Body: file.buffer,
+                    ContentType: file.mimetype
+                });
+
+                logoUrl = `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${uploadResult}`;
+            }
+
+            // Call the organization service to create the organization
+            const createdResponseModel = await this.organizationService.createOrganization(
+                (req as any).user.walletAddress,
+                { ...model, logo: logoUrl as string } // Pass the logo URL along with the model
+            );
+
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
 
         } catch (error) {

@@ -4,6 +4,7 @@ import { UserService } from '../services/user.service.js';
 import { CreateUserModel, createUserScheme } from '../models/user/userRegistration.model.js';
 import { handleResponse } from '../models/response_models/request_handler.js';
 import { verifySignatureSchema, walletAddressSchema } from '../models/user/wallet.model.js';
+import { uploadFileToS3 } from '../utils/fileUploader.js';
 
 @injectable()
 export class UserController {
@@ -61,6 +62,23 @@ export class UserController {
             }
 
             body.walletAddress = req.user.walletAddress;
+
+             // Handle file upload (assuming the file is sent in req.file or req.files)
+             const file = (req as any).file;
+             let avatar: string | undefined;
+
+             if (file) {
+                 const uploadResult = await uploadFileToS3({
+                     Bucket: process.env.S3_BUCKET_NAME!, // Ensure your bucket name is in env variables
+                     Key: `profile-pics/${file.originalname}`, // Customize the path and filename as needed
+                     Body: file.buffer,
+                     ContentType: file.mimetype
+                 });
+
+                 avatar = `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${uploadResult}`;
+             }
+
+             body.profilePicture = avatar;
             const responseModel = await this.userService.registerUser(body);
             return res.status(responseModel.statusCode).json(handleResponse(responseModel));
         } catch (error) {

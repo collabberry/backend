@@ -40,7 +40,8 @@ export class OrganizationService {
         }
 
         const organization = new Organization({
-            name: orgModel.name
+            name: orgModel.name,
+            logo: orgModel.logo
         });
         await organization.save();
 
@@ -115,7 +116,7 @@ export class OrganizationService {
         org.logo = orgModel.logo;
         org.par = orgModel.par;
         org.cycle = orgModel.cycle;
-        org.startDate = orgModel.startDate;
+        org.nextRoundDate = orgModel.nextRoundDate;
 
         org.save();
 
@@ -145,7 +146,7 @@ export class OrganizationService {
             logo: org.logo,
             par: org.par,
             cycle: org.cycle,
-            startDate: org.startDate,
+            nextRoundDate: org.nextRoundDate,
             contributors: users.
                 map(u => {
                     return {

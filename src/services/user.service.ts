@@ -13,12 +13,15 @@ import { SiweMessage } from 'siwe';
 import { UserResponseModel } from '../models/user/userDetails.model.js';
 import Organization from '../entities/org/organization.model.js';
 import Agreement from '../entities/org/agreement.model.js';
+import { EmailService } from './email.service.js';
 
 dotenv.config();  // Load the environment variables from .env
 
 
 @injectable()
 export class UserService {
+
+    constructor(private emailServce: EmailService) {}
     /**
      * Register a new user using the invitation token
      * @param token - Invitation token
@@ -50,7 +53,6 @@ export class UserService {
                     400
                 );
             }
-
 
             // Increment the usage count
             invitation.usageCount += 1;
@@ -84,6 +86,8 @@ export class UserService {
         });
 
         await user.save();
+
+        this.emailServce.sendCongratsOnRegistration(user.email, user.username);
 
         return ResponseModel.createSuccess({ id: user._id });
     }
