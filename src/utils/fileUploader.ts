@@ -1,13 +1,15 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Readable } from 'stream';
+import { config as dotenv_config } from 'dotenv';
+dotenv_config();
 
 // Define your S3 client with credentials and region (this can be configured with environment variables)
 const s3Client = new S3Client({
     region: 'eu-north-1',
     credentials: {
-        accessKeyId: 'AKIA2S2Y4B236NJU36W6'!,
-        secretAccessKey: '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'!
+        accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_S3_ACCESS_KEY!
     }
 });
 
