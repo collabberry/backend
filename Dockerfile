@@ -7,7 +7,7 @@ COPY ./yarn.lock .
 RUN yarn install
 
 # Build the application
-COPY ./src ./src
+COPY . .
 COPY ["./tsconfig.json", "tslint.json", "./"]
 RUN yarn build
 
