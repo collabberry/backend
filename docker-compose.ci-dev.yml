@@ -5,6 +5,8 @@ x-common: &common
       max-size: "500m"
       max-file: "5"
       compress: "true"
+  env_file:
+    - .compose.secrets.env
   restart: unless-stopped
   networks:
     - collabberry-backend
