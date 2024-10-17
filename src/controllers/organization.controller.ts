@@ -6,18 +6,19 @@ import { handleResponse } from '../models/response_models/request_handler.js';
 import { fullOrganizationScheme, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel, createAgreementSchema } from '../models/org/createAgreement.model.js';
 import { uploadFileToS3 } from '../utils/fileUploader.js';
+import { RoundService } from '../services/round.service.js';
+import { CreateAssessmentModel, createAssessmentSchema } from '../models/rounds/createAssessment.model.js';
 
 @injectable()
 export class OrganizationController {
 
-    constructor(private organizationService: OrganizationService) { }
+    constructor(private organizationService: OrganizationService, private roundService: RoundService) { }
 
     /**
      * Request a nonce for wallet authentication
      */
     public createOrg = async (req: any, res: Response) => {
         try {
-            console.log(req.body);
             const model: CreateOrgModel = req.body!;
             const isValid = organizationScheme.validate(model);
             if (isValid.error) {
@@ -70,13 +71,29 @@ export class OrganizationController {
 
     public editOrg = async (req: any, res: Response) => {
         try {
-            const model: OrgModel = req.body;
+            const model: OrgModel = req.body!;
             const isValid = fullOrganizationScheme.validate(model);
             if (isValid.error) {
                 return res.status(400).json({ message: isValid.error.message });
             }
+
+            // Handle file upload (assuming the file is sent in req.file or req.files)
+            const file = (req as any).file;
+            let logoUrl: string | undefined;
+
+            if (file) {
+                const uploadResult = await uploadFileToS3({
+                    Bucket: process.env.S3_BUCKET_NAME!, // Ensure your bucket name is in env variables
+                    Key: `organization-logos/${file.originalname}`, // Customize the path and filename as needed
+                    Body: file.buffer,
+                    ContentType: file.mimetype
+                });
+
+                logoUrl = `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${uploadResult}`;
+            }
+
             const createdResponseModel = await this.organizationService.editOrganization
-                (req.user.walletAddress, model);
+                (req.user.walletAddress, { ...model, logo: logoUrl as string });
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
 
         } catch (error) {
@@ -122,6 +139,47 @@ export class OrganizationController {
             const createdResponseModel = await this.organizationService.getUserAgreement(contributorId);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
 
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    public getCurrentRound = async (req: any, res: Response) => {
+        try {
+            const orgId = req.params.orgId;
+            const createdResponseModel = await this.roundService.getCurrentRound(orgId);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    // TODO: Add check only admin
+    public activateRounds = async (req: any, res: Response) => {
+        try {
+            const orgId = req.params.orgId;
+            const createdResponseModel = await this.roundService.activateRounds(orgId);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    public addAssessment = async (req: any, res: Response) => {
+        try {
+            const model: CreateAssessmentModel = req.body!;
+            const isValid = createAssessmentSchema.validate(model);
+            if (isValid.error) {
+                return res.status(400).json({ message: isValid.error.message });
+            }
+
+            const createdResponseModel = await this.roundService.addAssessment(
+                (req as any).user.walletAddress,
+                model);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
         } catch (error) {
             console.error('Error editing an org:', error);
             res.status(500).send('Internal Server Error');
