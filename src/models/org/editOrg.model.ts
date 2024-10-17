@@ -21,6 +21,6 @@ export const fullOrganizationScheme = Joi.object({
     name: Joi.string().required(),
     logo: Joi.string().optional().uri(),
     par: Joi.number().min(0).max(100).required(),
-    cycle: Joi.string().valid(...Object.values(Cycle)).required(),
+    cycle: Joi.number().valid(...Object.values(Cycle)).required(),
     startDate: Joi.date().required()
 });

@@ -188,7 +188,8 @@ export class RoundService {
             return ResponseModel.createError(new Error('Contributor not found'), 404);
         }
 
-        if (contributor.contribution!.organization !== user.contribution!.organization) {
+        if ((contributor.contribution!.organization! as any)._id.toString()
+            !== (user.contribution!.organization! as any)._id.toString()) {
             return ResponseModel.createError(new Error('Contributor is not part of the same organization'), 400);
         }
 

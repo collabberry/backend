@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 import WalletNonce from '../entities/users/nonce.model.js';
 import User from '../entities/users/user.model.js';
 import jwt from 'jsonwebtoken';
-import Joi from 'joi';
 import Invitation from '../entities/org/orgInvitation.model.js';
 import dotenv from 'dotenv';
 import { CreateUserModel } from '../models/user/userRegistration.model.js';
@@ -11,9 +10,8 @@ import { CreatedResponseModel } from '../models/response_models/created_response
 import { ResponseModel } from '../models/response_models/response_model.js';
 import { SiweMessage } from 'siwe';
 import { UserResponseModel } from '../models/user/userDetails.model.js';
-import Organization from '../entities/org/organization.model.js';
-import Agreement from '../entities/org/agreement.model.js';
 import { EmailService } from './email.service.js';
+import { Role } from '../entities/index.js';
 
 dotenv.config();  // Load the environment variables from .env
 
@@ -21,7 +19,7 @@ dotenv.config();  // Load the environment variables from .env
 @injectable()
 export class UserService {
 
-    constructor(private emailServce: EmailService) {}
+    constructor(private emailServce: EmailService) { }
     /**
      * Register a new user using the invitation token
      * @param token - Invitation token
@@ -81,10 +79,16 @@ export class UserService {
         // Create a new user linked to the organization from the invitation
         const user = new User({
             ...userData,
-            address: userData.walletAddress?.toLowerCase(),
-            organization: org
+            address: userData.walletAddress?.toLowerCase()
         });
 
+        if (org) {
+            user.contribution = {
+                organization: org!,
+                roles: [Role.Contributor],
+                agreement: undefined
+            };
+        }
         await user.save();
 
         this.emailServce.sendCongratsOnRegistration(user.email, user.username);
@@ -123,7 +127,7 @@ export class UserService {
                     responsibilities: (user.contribution?.agreement as any)?.responsibilities,
                     fiatRequested: (user.contribution?.agreement as any)?.fiatRequested,
                     commitment: (user.contribution?.agreement as any)?.commitment
-                 }
+                }
             }
         };
         return ResponseModel.createSuccess(responseModel);

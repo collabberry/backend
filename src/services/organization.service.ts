@@ -51,7 +51,7 @@ export class OrganizationService {
             agreement: undefined
         };
 
-        creator!.save();
+        await creator!.save();
 
         return ResponseModel.createSuccess({ id: organization._id });
     }
