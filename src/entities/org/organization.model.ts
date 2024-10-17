@@ -8,7 +8,8 @@ interface IOrganization extends Document {
     cycle: Cycle;
     nextRoundDate: Date;
     roundsActvated: boolean;
-    roundStarted: boolean;
+    rounds: mongoose.Types.ObjectId[];
+    assessmentDurationInDays: number;
 }
 
 const OrganizationSchema: Schema = new Schema({
@@ -17,13 +18,14 @@ const OrganizationSchema: Schema = new Schema({
     par: { type: Number, required: true, default: 20, min: 1, max: 100 },
     cycle: { type: Number, required: true, default: 3, enum: Cycle },
     roundsActivated: { type: Boolean, required: true, default: false },
-    roundStarted: { type: Boolean, required: true, default: false },
     nextRoundDate: {
         type: Date, required: true, default: () => {
             const now = new Date();
             return new Date(now.getFullYear(), now.getMonth(), 1);
         }
-    }
+    },
+    rounds: [{ type: Schema.Types.ObjectId, ref: 'Round' }],
+    assessmentDurationInDays: { type: Number, required: true, default: 7 }
 });
 
 const Organization = mongoose.model<IOrganization>('Organization', OrganizationSchema);
