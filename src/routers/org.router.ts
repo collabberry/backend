@@ -16,13 +16,13 @@ export class OrgRouter {
   private init(): void {
 
     const upload = multer();
-    
-    // Org Details 
+
+    // Org Details
     this._router.post('/', jwtMiddleware, upload.single('logo'), this.orgController.createOrg);
     this._router.put('/', jwtMiddleware, upload.single('logo'), this.orgController.editOrg);
     this._router.get('/:orgId', jwtMiddleware, this.orgController.getOrg);
 
-    // Contributors 
+    // Contributors
     this._router.get('/invitation', jwtMiddleware, this.orgController.getInvitationToken);
     this._router.post('/agreement', jwtMiddleware, this.orgController.addAgreement);
     this._router.get('/contributors/:contributorId/agreements', jwtMiddleware, this.orgController.getContribAgreement);

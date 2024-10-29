@@ -119,12 +119,13 @@ export class RoundService {
 
     }
 
-    public async getRoundById(organizationId: string, roundId: string): Promise<ResponseModel<RoundResponseModel | null>> {
+    public async getRoundById(organizationId: string, roundId: string):
+        Promise<ResponseModel<RoundResponseModel | null>> {
         const round = await Round.findById({
-            roundId,
+            roundId
         });
 
-        if(!round || round?.organizationId !== organizationId) {
+        if (!round || round?.organizationId !== organizationId) {
             return ResponseModel.createError(new Error('Invalid Round'), 400);
         }
 
