@@ -119,7 +119,50 @@ export class RoundService {
 
     }
 
-    public async activateRounds(organizationId: string): Promise<ResponseModel<null>> {
+    public async getRoundById(organizationId: string, roundId: string): Promise<ResponseModel<RoundResponseModel | null>> {
+        const round = await Round.findById({
+            roundId,
+        });
+
+        if(!round || round?.organizationId !== organizationId) {
+            return ResponseModel.createError(new Error('Invalid Round'), 400);
+        }
+
+        // Fetch the assessments related to the round
+        const assessments = await Assessment.find({ roundId: round._id });
+
+        // Map assessments to AssessmentResponseModel
+        const submittedAssessments: AssessmentResponseModel[] = assessments.map(assessment => ({
+            contributorId: assessment.contributorId,
+            cultureScore: assessment.cultureScore,
+            workScore: assessment.workScore,
+            feedbackPositive: assessment.feedbackPositive,
+            feedbackNegative: assessment.feedbackNegative
+        }) as AssessmentResponseModel);
+
+        const roundResponse: RoundResponseModel = {
+            status: round.startDate > new Date()
+                ? RoundStatus.NotStarted
+                : round.isActive
+                    ? RoundStatus.InProgress
+                    : RoundStatus.Completed,
+            startDate: round.startDate,
+            endDate: round.endDate!,
+            submittedAssessments,
+            assessmentDeadline: new Date(
+                new Date(round.startDate).setDate(
+                    round.startDate.getDate() + round.assessmentDurationInDays
+                )
+            )
+
+        };
+
+        return ResponseModel.createSuccess(roundResponse);
+
+    }
+
+
+    public async changeActiveRound(organizationId: string, isActive: boolean): Promise<ResponseModel<null>> {
         const org = await Organization.findById(organizationId);
 
         if (!org) {
@@ -130,18 +173,22 @@ export class RoundService {
             return ResponseModel.createError(new Error('Rounds already activated'), 400);
         }
 
-        org.roundsActvated = true;
+        org.roundsActvated = isActive;
         await org.save();
 
-        const newRound = new Round({
-            startDate: org.nextRoundDate,
-            endDate: this.calculateEndTime(org.cycle, org.nextRoundDate),
-            organizationId: org._id,
-            roundNumber: org.rounds.length + 1,
-            assessmentDurationInDays: org.assessmentDurationInDays
-        });
+        // TODO: + check start date is after Date.now()
+        const existingRound = await Round.find({ organizationId });
+        if (!existingRound && org.roundsActvated) {
 
-        await newRound.save();
+            const newRound = new Round({
+                startDate: org.nextRoundDate,
+                endDate: this.calculateEndTime(org.cycle, org.nextRoundDate),
+                organizationId: org._id,
+                roundNumber: org.rounds.length + 1,
+                assessmentDurationInDays: org.assessmentDurationInDays
+            });
+            await newRound.save();
+        }
 
         return ResponseModel.createSuccess(null);
 
