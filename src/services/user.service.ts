@@ -172,7 +172,7 @@ export class UserService {
             }
 
             const userToEncode = { walletAddress: message.address } as any;
-            const token = jwt.sign(userToEncode, process.env.JWT_SECRET!, { expiresIn: '1h' });
+            const token = jwt.sign(userToEncode, process.env.JWT_SECRET!, { expiresIn: '168h' });
             return ResponseModel.createSuccess({ token }, 200);
         } catch (error: any) {
             return ResponseModel.createError(error, 401);

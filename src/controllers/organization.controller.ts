@@ -156,11 +156,24 @@ export class OrganizationController {
         }
     }
 
-    // TODO: Add check only admin
-    public activateRounds = async (req: any, res: Response) => {
+    public getRoundById = async (req: any, res: Response) => {
         try {
             const orgId = req.params.orgId;
-            const createdResponseModel = await this.roundService.activateRounds(orgId);
+            const roundId = req.params.roundId;
+            const round = await this.roundService.getRoundById(orgId, roundId);
+            res.status(round.statusCode).json(handleResponse(round));
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    // TODO: Add check only admin
+    public editRound = async (req: any, res: Response) => {
+        try {
+            const orgId = req.params.orgId;
+            const { isActive } = req.body;
+            const createdResponseModel = await this.roundService.changeActiveRound(orgId, isActive);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
         } catch (error) {
             console.error('Error editing an org:', error);
