@@ -157,10 +157,12 @@ export class OrganizationController {
     }
 
     // TODO: Add check only admin
-    public activateRounds = async (req: any, res: Response) => {
+    public setIsActive = async (req: any, res: Response) => {
         try {
             const orgId = req.params.orgId;
-            const createdResponseModel = await this.roundService.activateRounds(orgId);
+            const isActive = !!req.body.isActive;
+
+            const createdResponseModel = await this.roundService.setIsActiveToRounds(orgId, isActive);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
         } catch (error) {
             console.error('Error editing an org:', error);

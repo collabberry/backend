@@ -1,9 +1,14 @@
+import { Role } from '../../entities/index.js';
+
 export interface UserResponseModel {
+    id: string;
     walletAddress?: string;
     username: string;
     email: string;
     profilePicture?: string;
-    contribution?: OrganizationContributorModel | null;
+    isAdmin: boolean;
+    organization?: OrganizationListModel | null;
+    agreement?: AgreementModel | null;
 }
 
 export interface AgreementModel {
@@ -14,9 +19,10 @@ export interface AgreementModel {
     commitment: number;
 }
 
-export interface OrganizationContributorModel {
+export interface OrganizationListModel {
     id: string;
     name: string;
-    roles: string[];
-    agreement: AgreementModel;
+    logo?: string | null;
 }
+
+

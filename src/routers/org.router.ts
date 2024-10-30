@@ -30,7 +30,7 @@ export class OrgRouter {
 
     this._router.get('/:orgId/rounds/current', jwtMiddleware, this.orgController.getCurrentRound);
 
-    this._router.put('/:orgId/rounds/activate', jwtMiddleware, this.orgController.activateRounds);
+    this._router.put('/:orgId/rounds/setIsActive', jwtMiddleware, this.orgController.setIsActive);
 
     this._router.post('/rounds/assess', jwtMiddleware, this.orgController.addAssessment);
   }

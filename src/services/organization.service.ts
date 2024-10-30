@@ -1,113 +1,107 @@
-import User from '../entities/users/user.model.js';
-
-import { CreateOrgModel } from '../models/org/createOrg.model.js';
 import { injectable } from 'inversify';
+import { v4 as uuidv4 } from 'uuid';
+import { AppDataSource } from '../data-source.js';
 import { ResponseModel } from '../models/response_models/response_model.js';
 import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
-import { Role } from '../entities/users/role.enum.js';
-import { v4 as uuidv4 } from 'uuid';
-import Invitation from '../entities/org/orgInvitation.model.js';
-import Organization from '../entities/org/organization.model.js';
+import { CreateOrgModel } from '../models/org/createOrg.model.js';
+import { Agreement, Invitation, Organization, Role, User } from '../entities/index.js';
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
-import Agreement from '../entities/org/agreement.model.js';
 
 
 @injectable()
 export class OrganizationService {
+
+    private userRepository;
+    private organizationRepository;
+    private invitationRepository;
+    private agreementRepository;
+
+    constructor() {
+        this.userRepository = AppDataSource.getRepository(User);
+        this.organizationRepository = AppDataSource.getRepository(Organization);
+        this.invitationRepository = AppDataSource.getRepository(Invitation);
+        this.agreementRepository = AppDataSource.getRepository(Agreement);
+    }
     /**
-     * Register a new user using the invitation token
-     * @param creatorAddress - User's registration data
-     * @param userData - Organization's basic data
-     * @returns the registered user
+     * Create a new organization and assign the creator as an admin and contributor
      */
     public async createOrganization(
         creatorAddress: string,
         orgModel: CreateOrgModel
     ): Promise<ResponseModel<CreatedResponseModel | null>> {
 
-        // Check if the user already exists (username uniqueness)
-        const creator = await User.findOne({ address: creatorAddress.toLowerCase() }).populate('contribution.organization');
+        const creator = await this.userRepository.findOne({
+            where: { address: creatorAddress.toLowerCase() },
+            relations: ['agreement']
+        });
 
         if (!creator) {
             return ResponseModel.createError(new Error('Creator not registered!'), 401);
         }
 
-        const existingOrg = await Organization.findOne({ name: orgModel.name });
-
+        const existingOrg = await this.organizationRepository.findOne({ where: { name: orgModel.name } });
         if (existingOrg) {
             return ResponseModel.createError(new Error('Organization with this name already exists!'), 400);
         }
 
-        const organization = new Organization({
-            name: orgModel.name,
-            logo: orgModel.logo
-        });
-        await organization.save();
+        const organization = new Organization();
+        organization.name = orgModel.name;
+        organization.logo = orgModel.logo;
+        organization.contributors = [creator];
 
-        creator!.contribution = {
-            organization: organization._id,
-            roles: [Role.Admin, Role.Contributor],
-            agreement: undefined
-        };
+        await this.organizationRepository.save(organization);
 
-        creator!.save();
+        creator.isAdmin = true;
+        await this.userRepository.save(creator);
 
-        return ResponseModel.createSuccess({ id: organization._id });
+        return ResponseModel.createSuccess({ id: organization.id });
     }
-
-
 
     /**
      * Generate a unique invitation link for the organization
-     * @param userWalletAddress - Wallet address of the user
-     * @param organizationId - ID of the organization
-     * @returns a unique invitation link
      */
     public async generateInvitationLink(
         userWalletAddress: string
     ): Promise<ResponseModel<any | null>> {
 
-        const adminUser = await User.findOne({ address: userWalletAddress.toLowerCase() });
-        if (!adminUser || !adminUser.contribution || !(adminUser.contribution.roles.indexOf(Role.Admin) !== -1)) {
+        const adminUser = await this.userRepository.findOne({
+            where: { address: userWalletAddress.toLowerCase(), isAdmin: true },
+            relations: ['organization']
+        });
+        if (!adminUser || !adminUser.isAdmin || !adminUser.organization) {
             return ResponseModel.createError(new Error('Only organization admins can generate invitation links.'), 401);
         }
 
-        // Ensure the organization exists
-        const organization = await Organization.findById(adminUser.contribution.organization);
-        if (!organization) {
-            return ResponseModel.createError(new Error('Organization not found.'), 404);
-        }
-
-        // Generate a unique token for the invitation
         const token = uuidv4();
-
-        // Store the invitation with a default usage limit of 10
-        const invitation = new Invitation({
+        const invitation = this.invitationRepository.create({
             token,
-            organization: organization._id,
-            invitedBy: adminUser._id,
-            usageLimit: 10 // Set a default usage limit (can be configurable)
+            organization: adminUser.organization,
+            invitedBy: adminUser,
+            usageLimit: 10
         });
-        await invitation.save();
+        await this.invitationRepository.save(invitation);
 
         return ResponseModel.createSuccess({ invitationToken: token });
     }
 
-
+    /**
+     * Edit organization details
+     */
     public async editOrganization(
         walletAddress: string,
         orgModel: OrgModel
     ): Promise<ResponseModel<CreatedResponseModel | null>> {
-
-        const admin = await User.findOne({ address: walletAddress.toLowerCase() });
-        if (!admin || !admin.contribution || !(admin.contribution.roles.indexOf(Role.Admin) !== -1)) {
-            return ResponseModel.createError
-                (new Error('Only organization admins can update organization details.'), 401);
+        const admin = await this.userRepository.findOne({
+            where: { address: walletAddress.toLowerCase() },
+            relations: ['organization']
+        });
+        if (!admin || !admin.isAdmin || !admin.organization) {
+            return ResponseModel.createError(
+                new Error('Only organization admins can update organization details.'), 401);
         }
 
-        const org = await Organization.findById(admin.contribution.organization);
-
+        const org = await this.organizationRepository.findOne({ where: { id: admin.organization.id } });
         if (!org) {
             return ResponseModel.createError(new Error('Organization not found!'), 404);
         }
@@ -116,125 +110,102 @@ export class OrganizationService {
         org.logo = orgModel.logo;
         org.par = orgModel.par;
         org.cycle = orgModel.cycle;
-        org.nextRoundDate = orgModel.nextRoundDate;
+        org.nextRoundDate = orgModel.startDate;
+        await this.organizationRepository.save(org);
 
-        org.save();
-
-        return ResponseModel.createSuccess({ id: org._id });
+        return ResponseModel.createSuccess({ id: org.id });
     }
 
+    /**
+     * Get organization details by ID
+     */
     public async getOrgById(orgId: string): Promise<ResponseModel<OrgDetailsModel | null>> {
-        const org = await Organization
-            .findById(orgId);
 
+        const org = await this.organizationRepository.findOne(
+            { where: { id: orgId }, relations: ['contributors', 'contributors.agreement'] });
         if (!org) {
             return ResponseModel.createError(new Error('Organization not found!'), 404);
         }
 
-        const users = await User.find({
-            'organization.orgId': org._id
-        })
-            .populate({
-                path: 'contribution.agreement',
-                model: 'Agreement'
-            })
-            .exec();
-
         const orgModel: OrgDetailsModel = {
-            id: org._id,
+            id: org.id,
             name: org.name,
             logo: org.logo,
             par: org.par,
             cycle: org.cycle,
             nextRoundDate: org.nextRoundDate,
-            contributors: users.
-                map(u => {
-                    return {
-                        id: u._id,
-                        walletAddress: u.address,
-                        username: u.username,
-                        profilePicture: u.profilePicture,
-                        agreement: {
-                            marketRate: (u.contribution?.agreement as any)?.marketRate,
-                            roleName: (u.contribution?.agreement as any)?.roleName,
-                            responsibilities: (u.contribution?.agreement as any)?.responsibilities,
-                            fiatRequested: (u.contribution?.agreement as any)?.fiatRequested,
-                            commitment: (u.contribution?.agreement as any)?.commitment
-                        }
-                    };
-                })
-
+            startDate: org.nextRoundDate,
+            contributors: org.contributors?.map((u) => ({
+                id: u.id,
+                walletAddress: u.address,
+                username: u.username,
+                profilePicture: u.profilePicture,
+                agreement: u.agreement && {
+                    marketRate: u.agreement.marketRate,
+                    roleName: u.agreement.roleName,
+                    responsibilities: u.agreement.responsibilities,
+                    fiatRequested: u.agreement.fiatRequested,
+                    commitment: u.agreement.commitment
+                }
+            })) || []
         };
 
         return ResponseModel.createSuccess(orgModel);
     }
 
-    public async addAgreement(walletAddress: string, agreement: CreateAgreementModel)
+    /**
+     * Add an agreement for a user in the organization
+     */
+    public async addAgreement(walletAddress: string, agreementData: CreateAgreementModel)
         : Promise<ResponseModel<CreatedResponseModel | null>> {
 
-        const admin = await User.findOne({ address: walletAddress.toLowerCase() })
-            .populate({
-                path: 'contribution.organization',
-                model: 'Organization'
-            })
-            .populate({
-                path: 'contribution.agreement',
-                model: 'Agreement'
-            });
-
-        if (!admin || !admin.contribution || !(admin.contribution.roles.indexOf(Role.Admin) !== -1)) {
-            return ResponseModel.createError
-                (new Error('Only organization admins can update organization details.'), 401);
+        const admin = await this.userRepository.findOne({
+            where: { address: walletAddress.toLowerCase() },
+            relations: ['organization']
+        });
+        if (!admin || !admin.organization || !admin.isAdmin) {
+            return ResponseModel.createError(new Error('Only organization admins can add agreements.'), 401);
         }
 
-        const agreementUser = await User.findById(agreement.userId)
-            .populate({
-                path: 'contribution.organization',
-                model: 'Organization'
-            })
-            .populate({
-                path: 'contribution.agreement',
-                model: 'Agreement'
-            });
-
+        const agreementUser = await this.userRepository.findOne({
+            where: { id: agreementData.userId },
+            relations: ['organization']
+        });
         if (!agreementUser ||
-            !agreementUser.contribution ||
-            (agreementUser!.contribution.organization as any)._id.toString() !==
-            (admin.contribution.organization as any)._id.toString()) {
+            agreementUser.organization.id !== admin.organization.id) {
             return ResponseModel.createError(new Error('User not found or not part of the organization!'), 404);
         }
 
-        if (agreementUser.contribution.agreement) {
+        if (agreementUser.agreement) {
             return ResponseModel.createError(new Error('User already has an agreement!'), 400);
         }
 
-        const newAgreement = new Agreement({
-            user: agreement.userId,
-            organization: agreementUser.contribution.organization,
-            roleName: agreement.roleName,
-            responsibilities: agreement.responsibilities,
-            marketRate: agreement.marketRate,
-            fiatRequested: agreement.fiatRequested,
-            commitment: agreement.commitment
+        const newAgreement = this.agreementRepository.create({
+            user: agreementUser,
+            roleName: agreementData.roleName,
+            responsibilities: agreementData.responsibilities,
+            marketRate: agreementData.marketRate,
+            fiatRequested: agreementData.fiatRequested,
+            commitment: agreementData.commitment
         });
+        await this.agreementRepository.save(newAgreement);
 
-        await newAgreement.save();
+        agreementUser.agreement = newAgreement;
+        await this.userRepository.save(agreementUser);
 
-        agreementUser.contribution.agreement = newAgreement._id;
-        agreementUser.markModified('contribution');
-
-        await agreementUser.save();
-
-        return ResponseModel.createSuccess({ id: newAgreement._id });
+        return ResponseModel.createSuccess({ id: newAgreement.id });
     }
 
+    /**
+     * Get a user's agreement
+     */
+    public async getUserAgreement(userId: string): Promise<ResponseModel<any | null>> {
+        const agreement = await this.agreementRepository.findOne({ where: { user: { id: userId } } });
 
-    public async getUserAgreement(userId: string)
-        : Promise<ResponseModel<any | null>> {
-
-        const agreement = await Agreement.findOne({ user: userId });
+        if (!agreement) {
+            return ResponseModel.createError(new Error('Agreement not found'), 404);
+        }
 
         return ResponseModel.createSuccess(agreement);
     }
-
 }

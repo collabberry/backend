@@ -1,16 +1,22 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
 
-interface IWalletNonce extends Document {
-    address: string;
-    nonce: string;
-    createdAt: Date;
+@Entity('WalletNonce')
+export class WalletNonce {
+    @PrimaryGeneratedColumn('uuid')
+    id!: string;
+
+    @Column({ type: 'varchar', length: 255, unique: true })
+    address!: string;
+
+    @Column({ type: 'varchar', length: 255 })
+    nonce!: string;
+
+    @CreateDateColumn({ type: 'timestamp' })
+    createdAt!: Date;
 }
 
-const WalletNonceSchema: Schema = new Schema({
-    address: { type: String, required: true },
-    nonce: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now, expires: 300 }  // Nonce expires in 5 minutes
-});
-
-const WalletNonce = mongoose.model<IWalletNonce>('WalletNonce', WalletNonceSchema);
-export default WalletNonce;
+// Custom repository function to handle nonce expiration logic
+export const checkNonceExpiration = async (walletNonce: WalletNonce): Promise<boolean> => {
+    const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutes in milliseconds
+    return (new Date().getTime() - walletNonce.createdAt.getTime()) < FIVE_MINUTES;
+};

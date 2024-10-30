@@ -1,37 +1,32 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import { Role } from './role.enum.js';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne, Relation } from 'typeorm';
+import { Agreement } from '../org/agreement.model.js';
+import { Organization } from '../org/organization.model.js';
 
-interface IContributionDetails {
-    organization: mongoose.Schema.Types.ObjectId;  // Reference to the organization
-    roles: Role[];  // Roles within that organization
-    agreement?: mongoose.Schema.Types.ObjectId;  // Agreement specific to this organization
-}
+@Entity('Users')
+export class User {
+    @PrimaryGeneratedColumn('uuid')
+    id!: string;
 
-export interface IUser extends Document {
-    address: string;
-    email: string;
-    username: string;
+    @Column({ type: 'varchar', length: 255, unique: true })
+    address!: string;
+
+    @Column({ type: 'varchar', length: 255, unique: true })
+    email!: string;
+
+    @Column({ type: 'varchar', length: 255 })
+    username!: string;
+
+    @Column({ type: 'varchar', nullable: true })
     profilePicture?: string;
-    contribution?: IContributionDetails;
+
+    @OneToOne(() => Agreement, { nullable: true, cascade: true })
+    @JoinColumn({ name: 'agreement_id' })
+    agreement?: Relation<Agreement>;
+
+    @Column({ type: 'boolean', default: false })
+    isAdmin!: boolean;
+
+    @ManyToOne(() => Organization, { nullable: true, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'organization_id' })
+    organization!: Relation<Organization>;
 }
-
-const UserSchema: Schema = new Schema({
-    address: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
-    username: { type: String, required: true },
-    profilePicture: { type: String },
-    contribution: {
-        type: Object, required: false, default: undefined, properties: {
-            organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
-            roles: {
-                type: [Number],
-                enum: [1, 2],
-                default: [Role.Contributor]
-            },
-            agreement: { type: mongoose.Schema.Types.ObjectId, ref: 'Agreement', required: false }
-        }
-    }
-});
-
-const User = mongoose.model<IUser>('User', UserSchema);
-export default User;

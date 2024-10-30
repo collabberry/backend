@@ -1,26 +1,28 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne, Relation } from 'typeorm';
+import { User } from '../users/user.model.js';
+import { Organization } from './organization.model.js';
 
-interface IAgreement extends Document {
-    user: mongoose.Schema.Types.ObjectId;  // Reference to the User
-    organization: mongoose.Schema.Types.ObjectId;  // Reference to the Organization
-    roleName: string;
-    responsibilities: string;
-    marketRate: number;
-    fiatRequested: number;
-    commitment: number;
+@Entity('agreements')
+export class Agreement {
+    @PrimaryGeneratedColumn('uuid')
+    id!: string;
+
+    @OneToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'user_id' })
+    user!: Relation<User>;
+
+    @Column({ type: 'varchar', length: 255 })
+    roleName!: string;
+
+    @Column({ type: 'text' })
+    responsibilities!: string;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    marketRate!: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    fiatRequested!: number;
+
+    @Column({ type: 'int', width: 3 })
+    commitment!: number;
 }
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const AgreementSchema: Schema = new Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    organization: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
-    roleName: { type: String, required: true },
-    responsibilities: { type: String, required: true },
-    marketRate: { type: Number, required: true },
-    fiatRequested: { type: Number, required: true },
-    commitment: { type: Number, required: true, min: 1, max: 100 }
-});
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-const Agreement = mongoose.model<IAgreement>('Agreement', AgreementSchema);
-export default Agreement;
