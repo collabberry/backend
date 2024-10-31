@@ -17,6 +17,7 @@ export class OrgRouter {
 
     const upload = multer();
 
+    // Org Details
     this._router.post('/', jwtMiddleware, upload.single('logo'), this.orgController.createOrg);
     // this._router.post('/', jwtMiddleware, this.orgController.createOrg);
     this._router.put('/', jwtMiddleware, upload.single('logo'), this.orgController.editOrg);
@@ -26,6 +27,9 @@ export class OrgRouter {
 
     this._router.get('/:orgId', jwtMiddleware, this.orgController.getOrg);
 
+    // Contributors
+    this._router.get('/invitation', jwtMiddleware, this.orgController.getInvitationToken);
+    this._router.post('/agreement', jwtMiddleware, this.orgController.addAgreement);
     this._router.get('/contributors/:contributorId/agreements', jwtMiddleware, this.orgController.getContribAgreement);
 
     this._router.get('/:orgId/rounds/current', jwtMiddleware, this.orgController.getCurrentRound);
