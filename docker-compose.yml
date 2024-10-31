@@ -18,15 +18,34 @@ services:
       JWT_SECRET: secret
       INVITATION_URL: "http://localhost:3000/invitation"
       PORT: 3000
+      DATABASE_URL: mysql://root:password@mysql:3306/collabberry
     ports:
       - 3000:3000
     depends_on:
-      - mongo
+      - mysql
+
+  mysql:
+    <<: *common
+    container_name: mysql
+    image: mysql:latest
+    environment:
+      DATABASE_URL: mysql://root:password@localhost:3306/collabberry?allowPublicKeyRetrieval=true
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: collabberry
+      DB_HOST: localhost
+      DB_PORT: 3306
+      DB_PASS: password
+      DB_NAME: collabberry
+      DB_UNAME: root
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - 3306:3306
 
 networks:
   collabberry-backend:
     driver: bridge
 
 volumes:
-  mongo-data:
+  mysql-data:
     driver: local
