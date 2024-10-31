@@ -65,4 +65,4 @@ package-lock.json
 /lib/
 .env
 dist
-mongo-data
+mysql-data

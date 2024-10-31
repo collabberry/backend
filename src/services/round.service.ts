@@ -1,73 +1,78 @@
-import User from '../entities/users/user.model.js';
-
 import { injectable } from 'inversify';
-import Organization from '../entities/org/organization.model.js';
+import { getRepository } from 'typeorm';
 import { EmailService } from './email.service.js';
-import { ResponseModel } from '../models/response_models/response_model.js';
-import Round from '../entities/assessment/round.model.js';
-import { Cycle } from '../entities/index.js';
-import Assessment from '../entities/assessment/assessment.model.js';
-import { CreateAssessmentModel } from '../models/rounds/createAssessment.model.js';
+import { Assessment, Cycle, Organization, Round, User } from '../entities/index.js';
+import { AppDataSource } from '../data-source.js';
 import { RoundResponseModel, RoundStatus } from '../models/rounds/roundDetails.model.js';
-import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
+import { ResponseModel } from '../models/response_models/response_model.js';
 import { AssessmentResponseModel } from '../models/rounds/assessmentResponse.model.js';
-
+import { CreateAssessmentModel } from '../models/rounds/createAssessment.model.js';
+import { App } from '../app.js';
+import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
 
 @injectable()
 export class RoundService {
 
-    constructor(private emailService: EmailService) { }
+    private userRepository;
+    private organizationRepository;
+    private roundsRepository;
+    private assessmentRepository;
 
+    constructor(private emailService: EmailService) {
+        this.userRepository = AppDataSource.getRepository(User);
+        this.organizationRepository = AppDataSource.getRepository(Organization);
+        this.roundsRepository = AppDataSource.getRepository(Round);
+        this.assessmentRepository = AppDataSource.getRepository(Assessment);
+    }
     /**
-     * Start the rounds for all organizations that have the next round date set to today
-     * and have the rounds activated
+     * Start rounds for all organizations that have the next round date set to today and have rounds activated
      */
     public async startRounds(): Promise<void> {
-        const orgs = await Organization.find({
-            roundsActivated: true,
-            roundStarted: false,
-            nextRoundDate: { $ete: new Date() }
+        const orgs = await this.organizationRepository.find({
+            where: {
+                roundsActivated: true,
+                nextRoundDate: new Date()
+            },
+            relations: ['rounds', 'users']
         });
 
         for (const org of orgs) {
             const endRoundDate = this.calculateEndTime(org.cycle, org.nextRoundDate);
-            const round = new Round({
-                organizationId: org._id,
-                roundNumber: org.rounds.length + 1,
+            const round = this.roundsRepository.create({
+                organization: org,
+                roundNumber: (org.rounds?.length ?? 0) + 1,
                 startDate: org.nextRoundDate,
                 endDate: endRoundDate,
                 assessmentDurationInDays: org.assessmentDurationInDays
             });
 
-            await round.save();
-            const nextRoundDate = new Date(endRoundDate);
-            nextRoundDate.setDate(nextRoundDate.getDate() + 1);
-            org.nextRoundDate = nextRoundDate;
-            org.rounds.push(round._id);
-            await org.save();
+            await this.roundsRepository.save(round);
 
-            const users = await User.find({ organization: org._id });
-            users.forEach(user => {
-                this.emailService.sendRoundStarted(user.email, user.username, org.name);
-            });
+            org.nextRoundDate = new Date(endRoundDate);
+            org.nextRoundDate.setDate(org.nextRoundDate.getDate() + 1);
+            await this.organizationRepository.save(org);
+
+            org.contributors?.forEach((user) =>
+                this.emailService.sendRoundStarted(user.email, user.username, org.name)
+            );
         }
     }
 
     private calculateEndTime(cycle: Cycle, startTime: Date): Date {
-        const endTime = new Date(startTime);  // Create a new date based on startTime
+        const endTime = new Date(startTime);
 
         switch (cycle) {
             case Cycle.Weekly:
-                endTime.setDate(endTime.getDate() + 7);  // Add 7 days
+                endTime.setDate(endTime.getDate() + 7);
                 break;
             case Cycle.Biweekly:
-                endTime.setDate(endTime.getDate() + 14);  // Add 14 days
+                endTime.setDate(endTime.getDate() + 14);
                 break;
             case Cycle.Monthly:
-                endTime.setMonth(endTime.getMonth() + 1);  // Add 1 month
+                endTime.setMonth(endTime.getMonth() + 1);
                 break;
             case Cycle.Quarterly:
-                endTime.setMonth(endTime.getMonth() + 3);  // Add 3 months
+                endTime.setMonth(endTime.getMonth() + 3);
                 break;
             default:
                 throw new Error('Invalid cycle type');
@@ -77,26 +82,26 @@ export class RoundService {
     }
 
     public async getCurrentRound(organizationId: string): Promise<ResponseModel<RoundResponseModel | null>> {
-        const currentRound = await Round.findOne({
-            organizationId,
-            isActive: true
+        const currentRound = await this.roundsRepository.findOne({
+            where: {
+                organization: { id: organizationId },
+                isActive: true
+            },
+            relations: ['assessments', 'assessments.contributor']
         });
 
         if (!currentRound) {
             return ResponseModel.createError(new Error('No active round found for the organization'), 400);
         }
 
-        // Fetch the assessments related to the current round
-        const assessments = await Assessment.find({ roundId: currentRound._id });
-
-        // Map assessments to AssessmentResponseModel
-        const submittedAssessments: AssessmentResponseModel[] = assessments.map(assessment => ({
-            contributorId: assessment.contributorId,
+        const submittedAssessments: AssessmentResponseModel[] = currentRound.assessments.map((assessment) => ({
+            id: assessment.id,
+            contributorId: assessment.contributor.id,
             cultureScore: assessment.cultureScore,
             workScore: assessment.workScore,
             feedbackPositive: assessment.feedbackPositive,
             feedbackNegative: assessment.feedbackNegative
-        }) as AssessmentResponseModel);
+        }));
 
         const roundResponse: RoundResponseModel = {
             status: currentRound.startDate > new Date()
@@ -112,34 +117,33 @@ export class RoundService {
                     currentRound.startDate.getDate() + currentRound.assessmentDurationInDays
                 )
             )
-
         };
 
         return ResponseModel.createSuccess(roundResponse);
-
     }
 
-    public async getRoundById(organizationId: string, roundId: string):
-        Promise<ResponseModel<RoundResponseModel | null>> {
-        const round = await Round.findById({
-            roundId
+
+
+    public async getRoundById(roundId: string): Promise<ResponseModel<RoundResponseModel | null>> {
+        const round = await this.roundsRepository.findOne({
+            where: {
+                id: roundId
+            },
+            relations: ['assessments', 'assessments.contributor']
         });
 
-        if (!round || round?.organizationId !== organizationId) {
-            return ResponseModel.createError(new Error('Invalid Round'), 400);
+        if (!round) {
+            return ResponseModel.createError(new Error('No active round found for the organization'), 400);
         }
 
-        // Fetch the assessments related to the round
-        const assessments = await Assessment.find({ roundId: round._id });
-
-        // Map assessments to AssessmentResponseModel
-        const submittedAssessments: AssessmentResponseModel[] = assessments.map(assessment => ({
-            contributorId: assessment.contributorId,
+        const submittedAssessments: AssessmentResponseModel[] = round.assessments.map((assessment) => ({
+            id: assessment.id,
+            contributorId: assessment.contributor.id,
             cultureScore: assessment.cultureScore,
             workScore: assessment.workScore,
             feedbackPositive: assessment.feedbackPositive,
             feedbackNegative: assessment.feedbackNegative
-        }) as AssessmentResponseModel);
+        }));
 
         const roundResponse: RoundResponseModel = {
             status: round.startDate > new Date()
@@ -155,109 +159,91 @@ export class RoundService {
                     round.startDate.getDate() + round.assessmentDurationInDays
                 )
             )
-
         };
 
         return ResponseModel.createSuccess(roundResponse);
-
     }
 
-
-    public async changeActiveRound(organizationId: string, isActive: boolean): Promise<ResponseModel<null>> {
-        const org = await Organization.findById(organizationId);
+    public async setIsActiveToRounds(organizationId: string, isActive: boolean): Promise<ResponseModel<null>> {
+        const org = await this.organizationRepository.findOne({ where: { id: organizationId }, relations: ['rounds'] });
 
         if (!org) {
             return ResponseModel.createError(new Error('Organization not found'), 404);
         }
 
-        if (org.roundsActvated) {
-            return ResponseModel.createError(new Error('Rounds already activated'), 400);
-        }
+        org.roundsActivated = isActive;
+        await this.organizationRepository.save(org);
 
-        org.roundsActvated = isActive;
-        await org.save();
-
-        // TODO: + check start date is after Date.now()
-        const existingRound = await Round.find({ organizationId });
-        if (!existingRound && org.roundsActvated) {
-
-            const newRound = new Round({
+        if (isActive && org.rounds?.findIndex((round) => round.startDate > new Date()) === -1) {
+            const newRound = this.roundsRepository.create({
                 startDate: org.nextRoundDate,
                 endDate: this.calculateEndTime(org.cycle, org.nextRoundDate),
-                organizationId: org._id,
-                roundNumber: org.rounds.length + 1,
+                organization: org,
+                roundNumber: (org.rounds?.length ?? 0) + 1,
                 assessmentDurationInDays: org.assessmentDurationInDays
             });
-            await newRound.save();
+
+            await this.roundsRepository.save(newRound);
         }
 
         return ResponseModel.createSuccess(null);
-
     }
 
-    public async addAssessment(walletAddress: string, assessment: CreateAssessmentModel)
-        : Promise<ResponseModel<CreatedResponseModel | null>> {
+    public async addAssessment(walletAddress: string, assessmentData: CreateAssessmentModel):
+        Promise<ResponseModel<CreatedResponseModel | null>> {
 
-        const user = await User.findOne({ address: walletAddress.toLowerCase() })
-            .populate({
-                path: 'contribution.organization',
-                model: 'Organization'
-            });
+        const user = await this.userRepository.findOne({
+            where: { address: walletAddress.toLowerCase() },
+            relations: ['organization', 'agreement']
+        });
 
         if (!user) {
             return ResponseModel.createError(new Error('User not found'), 404);
         }
 
-        const currentRound = await Round.findOne({
-            organizationId: user!.contribution?.organization,
-            isActive: true
+        const currentRound = await this.roundsRepository.findOne({
+            where: {
+                organization: { id: user.organization.id },
+                isActive: true
+            }
         });
 
         if (!currentRound) {
             return ResponseModel.createError(new Error('No active round found for the organization'), 400);
         }
 
-        const existingAssessment = await Assessment.findOne({
-            roundId: currentRound._id,
-            contributorId: user._id
+        const existingAssessment = await this.assessmentRepository.findOne({
+            where: {
+                round: { id: currentRound.id },
+                contributor: { id: user.id }
+            }
         });
 
         if (existingAssessment) {
             return ResponseModel.createError(new Error('Assessment already submitted'), 400);
         }
 
-        const contributor = await User.findById(assessment.contributorId)
-            .populate({
-                path: 'contribution.organization',
-                model: 'Organization'
-            });
+        const contributor = await this.userRepository.findOne({
+            where: { id: assessmentData.contributorId },
+            relations: ['agreement', 'organization']
+        });
 
-        if (!contributor || !contributor.contribution) {
-            return ResponseModel.createError(new Error('Contributor not found'), 404);
-        }
-
-        if ((contributor.contribution!.organization! as any)._id.toString()
-            !== (user.contribution!.organization! as any)._id.toString()) {
+        if (!contributor ||
+            !contributor.organization ||
+            contributor.organization.id !== user.organization.id) {
             return ResponseModel.createError(new Error('Contributor is not part of the same organization'), 400);
         }
 
-
-        if (!contributor.contribution!.agreement) {
-            return ResponseModel.createError(new Error('Contributor does not have an agreement set up'), 400);
-        }
-
-        const newAssessment = new Assessment({
-            roundId: currentRound._id,
-            contributorId: user._id,
-            cultureScore: assessment.cultureScore,
-            workScore: assessment.workScore,
-            feedbackPositive: assessment.feedbackPositive,
-            feedbackNegative: assessment.feedbackNegative
+        const newAssessment = this.assessmentRepository.create({
+            round: currentRound,
+            contributor,
+            cultureScore: assessmentData.cultureScore,
+            workScore: assessmentData.workScore,
+            feedbackPositive: assessmentData.feedbackPositive,
+            feedbackNegative: assessmentData.feedbackNegative
         });
 
-        await newAssessment.save();
-        return ResponseModel.createSuccess({ id: newAssessment._id });
+        await this.assessmentRepository.save(newAssessment);
+        return ResponseModel.createSuccess({ id: newAssessment.id });
     }
-
-
 }

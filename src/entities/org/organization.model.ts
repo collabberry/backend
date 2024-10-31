@@ -1,32 +1,39 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, Relation } from 'typeorm';
 import { Cycle } from './cycle.enum.js';
+import { Round } from '../assessment/round.model.js';
+import { Agreement } from './agreement.model.js';
+import { User } from '../users/user.model.js';
 
-interface IOrganization extends Document {
-    name: string;
+@Entity('organizations')
+export class Organization {
+    @PrimaryGeneratedColumn('uuid')
+    id!: string;
+
+    @Column({ type: 'varchar', length: 255, unique: true })
+    name!: string;
+
+    @Column({ type: 'varchar', nullable: true })
     logo?: string;
-    par: number;
-    cycle: Cycle;
-    nextRoundDate: Date;
-    roundsActvated: boolean;
-    rounds: mongoose.Types.ObjectId[];
-    assessmentDurationInDays: number;
+
+    @Column({ type: 'int', default: 20 })
+    par!: number;
+
+    @Column('enum', { enum: Cycle, default: Cycle.Monthly })
+    cycle!: Cycle;
+
+    @Column({ type: 'boolean', default: false })
+    roundsActivated!: boolean;
+
+    @CreateDateColumn({ type: 'timestamp' })
+    nextRoundDate!: Date;
+
+    @OneToMany(() => Round, (round) => round.organization, { cascade: true })
+    rounds?: Relation<Round[]>;
+
+    @Column({ type: 'int', default: 7 })
+    assessmentDurationInDays!: number;
+
+    @OneToMany(() => User, (user) => user.organization, { cascade: false })
+    contributors?: Relation<User[]>;
+
 }
-
-const OrganizationSchema: Schema = new Schema({
-    name: { type: String, required: true, unique: true },
-    logo: { type: String, required: false },
-    par: { type: Number, required: true, default: 20, min: 1, max: 100 },
-    cycle: { type: Number, required: true, default: 3, enum: Cycle },
-    roundsActivated: { type: Boolean, required: true, default: false },
-    nextRoundDate: {
-        type: Date, required: true, default: () => {
-            const now = new Date();
-            return new Date(now.getFullYear(), now.getMonth(), 1);
-        }
-    },
-    rounds: [{ type: Schema.Types.ObjectId, ref: 'Round' }],
-    assessmentDurationInDays: { type: Number, required: true, default: 7 }
-});
-
-const Organization = mongoose.model<IOrganization>('Organization', OrganizationSchema);
-export default Organization;

@@ -1,24 +1,31 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany, Relation } from 'typeorm';
+import { Organization } from '../org/organization.model.js';
+import { Assessment } from './assessment.model.js';
 
-interface IRound extends Document {
-    organizationId: string;
-    roundNumber: number;
-    startDate: Date;
+@Entity('rounds')
+export class Round {
+    @PrimaryGeneratedColumn('uuid')
+    id!: string;
+
+    @ManyToOne(() => Organization, (organization) => organization.rounds, { nullable: false, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'organization_id' })
+    organization!: Relation<Organization>;
+
+    @Column({ type: 'int' })
+    roundNumber!: number;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    startDate!: Date;
+
+    @Column({ type: 'timestamp', nullable: true })
     endDate?: Date;
-    assessments: mongoose.Types.ObjectId[];
-    isActive: boolean;
-    assessmentDurationInDays: number;
+
+    @OneToMany(() => Assessment, (assessment) => assessment.round, { cascade: true })
+    assessments!: Relation<Assessment[]>;
+
+    @Column({ type: 'boolean', default: true })
+    isActive!: boolean;
+
+    @Column({ type: 'int', default: 7 })
+    assessmentDurationInDays!: number;
 }
-
-const RoundSchema: Schema = new Schema({
-    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
-    roundNumber: { type: Number, required: true },
-    startDate: { type: Date, required: true, default: Date.now },
-    endDate: { type: Date },
-    assessments: [{ type: Schema.Types.ObjectId, ref: 'Assessment' }],
-    isActive: { type: Boolean, required: true, default: true },
-    assessmentDurationInDays: { type: Number, required: true, default: 7 }
-});
-
-const Round = mongoose.model<IRound>('Round', RoundSchema);
-export default Round;

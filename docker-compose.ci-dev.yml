@@ -21,20 +21,10 @@ services:
       JWT_SECRET: secret
       INVITATION_URL: "http://localhost:3000/invitation"
       PORT: 3000
-      MONGO_URI: mongodb://mongo:27017/collabberry
     ports:
       - 80:3000
     depends_on:
-      - mongo
-
-  mongo:
-    <<: *common
-    container_name: mongo
-    image: mongo:5.0
-    volumes:
-      - ./mongo-data:/data/db
-    ports:
-      - 27017:27017
+      - mysql
 
 networks:
   collabberry-backend:

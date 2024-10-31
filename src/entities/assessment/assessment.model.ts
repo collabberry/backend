@@ -1,22 +1,29 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Relation } from 'typeorm';
+import { User } from '../users/user.model.js';
+import { Round } from './round.model.js';
 
-interface IAssessment extends Document {
-    contributorId: string;
-    roundId: string;
-    cultureScore: number;
-    workScore: number;
-    feedbackPositive: string;
-    feedbackNegative: string;
+@Entity('assessments')
+export class Assessment {
+    @PrimaryGeneratedColumn('uuid')
+    id!: string;
+
+    @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'contributor_id' })
+    contributor!: Relation<User>;
+
+    @ManyToOne(() => Round, (round) => round.assessments, { nullable: false, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'round_id' })
+    round!: Relation<Round>;
+
+    @Column({ type: 'int', width: 2, nullable: true })
+    cultureScore?: number | null;
+
+    @Column({ type: 'int', width: 2, nullable: true })
+    workScore?: number | null;
+
+    @Column({ type: 'text' })
+    feedbackPositive?: string | null;
+
+    @Column({ type: 'text' })
+    feedbackNegative?: string | null;
 }
-
-const AssessmentSchema: Schema = new Schema({
-    contributorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },  // User who is being assessed
-    roundId: { type: Schema.Types.ObjectId, ref: 'Round', required: true },  // Reference to the round
-    cultureScore: { type: Number, required: true, min: 0, max: 10 },  // Example score range (customize)
-    workScore: { type: Number, required: true, min: 0, max: 10 },
-    feedbackPositive: { type: String, required: true },
-    feedbackNegative: { type: String, required: true }
-});
-
-const Assessment = mongoose.model<IAssessment>('Assessment', AssessmentSchema);
-export default Assessment;
