@@ -9,6 +9,7 @@ import { AssessmentResponseModel } from '../models/rounds/assessmentResponse.mod
 import { CreateAssessmentModel } from '../models/rounds/createAssessment.model.js';
 import { App } from '../app.js';
 import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
+import { calculateEndTime } from '../utils/endTime.util.js';
 
 @injectable()
 export class RoundService {
@@ -37,7 +38,7 @@ export class RoundService {
         });
 
         for (const org of orgs) {
-            const endRoundDate = this.calculateEndTime(org.cycle, org.nextRoundDate);
+            const endRoundDate = calculateEndTime(org.cycle, org.nextRoundDate);
             const round = this.roundsRepository.create({
                 organization: org,
                 roundNumber: (org.rounds?.length ?? 0) + 1,
@@ -56,29 +57,6 @@ export class RoundService {
                 this.emailService.sendRoundStarted(user.email, user.username, org.name)
             );
         }
-    }
-
-    private calculateEndTime(cycle: Cycle, startTime: Date): Date {
-        const endTime = new Date(startTime);
-
-        switch (cycle) {
-            case Cycle.Weekly:
-                endTime.setDate(endTime.getDate() + 7);
-                break;
-            case Cycle.Biweekly:
-                endTime.setDate(endTime.getDate() + 14);
-                break;
-            case Cycle.Monthly:
-                endTime.setMonth(endTime.getMonth() + 1);
-                break;
-            case Cycle.Quarterly:
-                endTime.setMonth(endTime.getMonth() + 3);
-                break;
-            default:
-                throw new Error('Invalid cycle type');
-        }
-
-        return endTime;
     }
 
     public async getCurrentRound(organizationId: string): Promise<ResponseModel<RoundResponseModel | null>> {
@@ -104,6 +82,7 @@ export class RoundService {
         }));
 
         const roundResponse: RoundResponseModel = {
+            id: currentRound.id,
             status: currentRound.startDate > new Date()
                 ? RoundStatus.NotStarted
                 : currentRound.isActive
@@ -146,6 +125,7 @@ export class RoundService {
         }));
 
         const roundResponse: RoundResponseModel = {
+            id: round.id,
             status: round.startDate > new Date()
                 ? RoundStatus.NotStarted
                 : round.isActive
@@ -177,7 +157,7 @@ export class RoundService {
         if (isActive && org.rounds?.findIndex((round) => round.startDate > new Date()) === -1) {
             const newRound = this.roundsRepository.create({
                 startDate: org.nextRoundDate,
-                endDate: this.calculateEndTime(org.cycle, org.nextRoundDate),
+                endDate: calculateEndTime(org.cycle, org.nextRoundDate),
                 organization: org,
                 roundNumber: (org.rounds?.length ?? 0) + 1,
                 assessmentDurationInDays: org.assessmentDurationInDays
@@ -187,6 +167,52 @@ export class RoundService {
         }
 
         return ResponseModel.createSuccess(null);
+    }
+
+    public async editRound(roundId: string, roundModel: RoundResponseModel): Promise<ResponseModel<null>> {
+        const round = await this.roundsRepository.findOne({ where: { id: roundId } });
+
+        if (!round) {
+            return ResponseModel.createError(new Error('Round not found'), 404);
+        }
+
+        round.startDate = roundModel.startDate;
+        round.endDate = roundModel.endDate;
+        await this.roundsRepository.save(round);
+
+
+        return ResponseModel.createSuccess(null);
+    }
+
+    public async getRounds(organizationId: string): Promise<ResponseModel<RoundResponseModel[] | null>> {
+        const rounds = await this.roundsRepository.find({
+            where: { organization: { id: organizationId } },
+            relations: ['assessments', 'assessments.contributor']
+        });
+
+        return ResponseModel.createSuccess(rounds.map((round) => ({
+            id: round.id,
+            status: round.startDate > new Date()
+                ? RoundStatus.NotStarted
+                : round.isActive
+                    ? RoundStatus.InProgress
+                    : RoundStatus.Completed,
+            startDate: round.startDate,
+            endDate: round.endDate!,
+            submittedAssessments: round.assessments.map((assessment) => ({
+                id: assessment.id,
+                contributorId: assessment.contributor.id,
+                cultureScore: assessment.cultureScore,
+                workScore: assessment.workScore,
+                feedbackPositive: assessment.feedbackPositive,
+                feedbackNegative: assessment.feedbackNegative
+            })),
+            assessmentDeadline: new Date(
+                new Date(round.startDate).setDate(
+                    round.startDate.getDate() + round.assessmentDurationInDays
+                )
+            )
+        })));
     }
 
     public async addAssessment(walletAddress: string, assessmentData: CreateAssessmentModel):

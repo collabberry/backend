@@ -8,15 +8,17 @@ import { CreateAgreementModel, createAgreementSchema } from '../models/org/creat
 import { uploadFileToS3 } from '../utils/fileUploader.js';
 import { RoundService } from '../services/round.service.js';
 import { CreateAssessmentModel, createAssessmentSchema } from '../models/rounds/createAssessment.model.js';
+import { UserService } from '../services/user.service.js';
 
 @injectable()
 export class OrganizationController {
 
-    constructor(private organizationService: OrganizationService, private roundService: RoundService) { }
+    constructor(
+        private organizationService: OrganizationService,
+        private roundService: RoundService,
+        private userService: UserService
+    ) { }
 
-    /**
-     * Request a nonce for wallet authentication
-     */
     public createOrg = async (req: any, res: Response) => {
         try {
             const model: CreateOrgModel = req.body!;
@@ -54,9 +56,6 @@ export class OrganizationController {
         }
     }
 
-    /**
-     * Generate a unique invitation link for the organization
-     */
     public getInvitationToken = async (req: any, res: Response) => {
         try {
             const invitationToken = await this.organizationService
@@ -102,7 +101,6 @@ export class OrganizationController {
         }
     }
 
-
     public getOrg = async (req: any, res: Response) => {
         try {
             const id = req.params.orgId;
@@ -115,7 +113,6 @@ export class OrganizationController {
             res.status(500).send('Internal Server Error');
         }
     }
-
 
     public addAgreement = async (req: any, res: Response) => {
         try {
@@ -139,49 +136,6 @@ export class OrganizationController {
             const createdResponseModel = await this.organizationService.getUserAgreement(contributorId);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
 
-        } catch (error) {
-            console.error('Error editing an org:', error);
-            res.status(500).send('Internal Server Error');
-        }
-    }
-
-    public getCurrentRound = async (req: any, res: Response) => {
-        try {
-            const orgId = req.params.orgId;
-            const createdResponseModel = await this.roundService.getCurrentRound(orgId);
-            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
-        } catch (error) {
-            console.error('Error editing an org:', error);
-            res.status(500).send('Internal Server Error');
-        }
-    }
-
-    // TODO: Add check only admin
-    public setIsActive = async (req: any, res: Response) => {
-        try {
-            const orgId = req.params.orgId;
-            const isActive = !!req.body.isActive;
-
-            const createdResponseModel = await this.roundService.setIsActiveToRounds(orgId, isActive);
-            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
-        } catch (error) {
-            console.error('Error editing an org:', error);
-            res.status(500).send('Internal Server Error');
-        }
-    }
-
-    public addAssessment = async (req: any, res: Response) => {
-        try {
-            const model: CreateAssessmentModel = req.body!;
-            const isValid = createAssessmentSchema.validate(model);
-            if (isValid.error) {
-                return res.status(400).json({ message: isValid.error.message });
-            }
-
-            const createdResponseModel = await this.roundService.addAssessment(
-                (req as any).user.walletAddress,
-                model);
-            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
         } catch (error) {
             console.error('Error editing an org:', error);
             res.status(500).send('Internal Server Error');

@@ -13,6 +13,7 @@ export interface OrgModel {
     par: number;
     cycle: Cycle;
     startDate: Date;
+    roundsActivated: boolean;
     nextRoundDate: Date;
 }
 

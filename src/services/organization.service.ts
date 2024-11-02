@@ -4,9 +4,11 @@ import { AppDataSource } from '../data-source.js';
 import { ResponseModel } from '../models/response_models/response_model.js';
 import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
 import { CreateOrgModel } from '../models/org/createOrg.model.js';
-import { Agreement, Invitation, Organization, Role, User } from '../entities/index.js';
+import { Agreement, Invitation, Organization, Role, Round, User } from '../entities/index.js';
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
+import { MoreThan } from 'typeorm';
+import { calculateEndTime } from '../utils/endTime.util.js';
 
 
 @injectable()
@@ -16,12 +18,14 @@ export class OrganizationService {
     private organizationRepository;
     private invitationRepository;
     private agreementRepository;
+    private roundsRepository;
 
     constructor() {
         this.userRepository = AppDataSource.getRepository(User);
         this.organizationRepository = AppDataSource.getRepository(Organization);
         this.invitationRepository = AppDataSource.getRepository(Invitation);
         this.agreementRepository = AppDataSource.getRepository(Agreement);
+        this.roundsRepository = AppDataSource.getRepository(Round);
     }
     /**
      * Create a new organization and assign the creator as an admin and contributor
@@ -85,6 +89,8 @@ export class OrganizationService {
         return ResponseModel.createSuccess({ invitationToken: token });
     }
 
+
+
     /**
      * Edit organization details
      */
@@ -113,6 +119,17 @@ export class OrganizationService {
         org.nextRoundDate = orgModel.startDate;
         await this.organizationRepository.save(org);
 
+        const round = await this.roundsRepository.findOne({
+            where: {
+                organization: org,
+                startDate: MoreThan(new Date())
+            }
+        });
+        if (round) {
+            round.startDate = orgModel.startDate;
+            round.endDate = calculateEndTime(orgModel.cycle, orgModel.startDate);
+            await this.roundsRepository.save(round);
+        }
         return ResponseModel.createSuccess({ id: org.id });
     }
 
@@ -135,6 +152,7 @@ export class OrganizationService {
             cycle: org.cycle,
             nextRoundDate: org.nextRoundDate,
             startDate: org.nextRoundDate,
+            roundsActivated: org.roundsActivated,
             contributors: org.contributors?.map((u) => ({
                 id: u.id,
                 walletAddress: u.address,
