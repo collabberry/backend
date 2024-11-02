@@ -26,8 +26,6 @@ services:
       DB_PASS: password
       DB_NAME: collabberry
       DB_UNAME: root
-    ports:
-      - 80:3000
     depends_on:
       - mysql
 
