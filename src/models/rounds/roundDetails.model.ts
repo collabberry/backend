@@ -1,6 +1,7 @@
 import { AssessmentResponseModel } from './assessmentResponse.model.js';
 
 export interface RoundResponseModel {
+    id: string;
     status: RoundStatus;
     startDate: Date;
     assessmentDeadline: Date;

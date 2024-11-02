@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import { injectable } from 'inversify';
 import { UserRouter } from './routers/user.router.js';
 import { OrgRouter } from './routers/org.router.js';
+import { RoundsRouter } from './routers/rounds.router.js';
 import cors from 'cors';
 
 @injectable()
@@ -13,7 +14,8 @@ export class App {
 
     constructor(
         private userRouter: UserRouter,
-        private orgRouter: OrgRouter
+        private orgRouter: OrgRouter,
+        private roundsRouter: RoundsRouter
     ) {
         this._app = express();
         this.config();
@@ -49,5 +51,6 @@ export class App {
     _initRoutes(): void {
         this._app.use('/api/users', this.userRouter.router);
         this._app.use('/api/orgs', this.orgRouter.router);
+        this._app.use('/api/rounds', this.roundsRouter.router);
     }
 }

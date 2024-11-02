@@ -31,12 +31,6 @@ export class OrgRouter {
     this._router.get('/invitation', jwtMiddleware, this.orgController.getInvitationToken);
     this._router.post('/agreement', jwtMiddleware, this.orgController.addAgreement);
     this._router.get('/contributors/:contributorId/agreements', jwtMiddleware, this.orgController.getContribAgreement);
-
-    this._router.get('/:orgId/rounds/current', jwtMiddleware, this.orgController.getCurrentRound);
-
-    this._router.put('/:orgId/rounds/setIsActive', jwtMiddleware, this.orgController.setIsActive);
-
-    this._router.post('/rounds/assess', jwtMiddleware, this.orgController.addAssessment);
   }
 
   public get router(): Router {
