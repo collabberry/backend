@@ -8,8 +8,12 @@ export class Assessment {
     id!: string;
 
     @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'contributor_id' })
-    contributor!: Relation<User>;
+    @JoinColumn({ name: 'assessor_id' })
+    assessor!: Relation<User>;
+
+    @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'assessed_id' })
+    assessed!: Relation<User>;
 
     @ManyToOne(() => Round, (round) => round.assessments, { nullable: false, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'round_id' })

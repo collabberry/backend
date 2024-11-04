@@ -44,7 +44,19 @@ export class EmailService {
             path.join(__dirname, '..', 'emailTemplates', 'registrationEmail.html'),
             {
                 contributor_name: `${username}`,
-                account_link: 'https://collabberry.xyz'
+                account_link: 'https://app.collabberry.xyz'
+            }
+        );
+    }
+
+    public async sendAssessmentReminder(email: string, username: string, orgName: string): Promise<void> {
+        await this.sendEmail(
+            email,
+            '🔔 Reminder: Complete Your Assessments 🔔',
+            path.join(__dirname, '..', 'emailTemplates', 'assessmentReminderEmail.html'),
+            {
+                contributor_name: `${username}`,
+                organization_name: `${orgName}`
             }
         );
     }
