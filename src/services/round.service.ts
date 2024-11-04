@@ -1,5 +1,5 @@
 import { injectable } from 'inversify';
-import { getRepository } from 'typeorm';
+import { getRepository, IsNull, Not } from 'typeorm';
 import { EmailService } from './email.service.js';
 import { Assessment, Cycle, Organization, Round, User } from '../entities/index.js';
 import { AppDataSource } from '../data-source.js';
@@ -65,7 +65,7 @@ export class RoundService {
                 organization: { id: organizationId },
                 isActive: true
             },
-            relations: ['assessments', 'assessments.contributor']
+            relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
 
         if (!currentRound) {
@@ -74,7 +74,8 @@ export class RoundService {
 
         const submittedAssessments: AssessmentResponseModel[] = currentRound.assessments.map((assessment) => ({
             id: assessment.id,
-            contributorId: assessment.contributor.id,
+            assessedId: assessment.assessed.id,
+            assessorId: assessment.assessor.id,
             cultureScore: assessment.cultureScore,
             workScore: assessment.workScore,
             feedbackPositive: assessment.feedbackPositive,
@@ -108,7 +109,7 @@ export class RoundService {
             where: {
                 id: roundId
             },
-            relations: ['assessments', 'assessments.contributor']
+            relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
 
         if (!round) {
@@ -117,7 +118,8 @@ export class RoundService {
 
         const submittedAssessments: AssessmentResponseModel[] = round.assessments.map((assessment) => ({
             id: assessment.id,
-            contributorId: assessment.contributor.id,
+            assessedId: assessment.assessed.id,
+            assessorId: assessment.assessor.id,
             cultureScore: assessment.cultureScore,
             workScore: assessment.workScore,
             feedbackPositive: assessment.feedbackPositive,
@@ -187,7 +189,7 @@ export class RoundService {
     public async getRounds(organizationId: string): Promise<ResponseModel<RoundResponseModel[] | null>> {
         const rounds = await this.roundsRepository.find({
             where: { organization: { id: organizationId } },
-            relations: ['assessments', 'assessments.contributor']
+            relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
 
         return ResponseModel.createSuccess(rounds.map((round) => ({
@@ -201,12 +203,13 @@ export class RoundService {
             endDate: round.endDate!,
             submittedAssessments: round.assessments.map((assessment) => ({
                 id: assessment.id,
-                contributorId: assessment.contributor.id,
+                assessorId: assessment.assessor.id,
+                assessedId: assessment.assessed.id,
                 cultureScore: assessment.cultureScore,
                 workScore: assessment.workScore,
                 feedbackPositive: assessment.feedbackPositive,
                 feedbackNegative: assessment.feedbackNegative
-            })),
+            } as AssessmentResponseModel)),
             assessmentDeadline: new Date(
                 new Date(round.startDate).setDate(
                     round.startDate.getDate() + round.assessmentDurationInDays
@@ -218,18 +221,18 @@ export class RoundService {
     public async addAssessment(walletAddress: string, assessmentData: CreateAssessmentModel):
         Promise<ResponseModel<CreatedResponseModel | null>> {
 
-        const user = await this.userRepository.findOne({
+        const assessor = await this.userRepository.findOne({
             where: { address: walletAddress.toLowerCase() },
             relations: ['organization', 'agreement']
         });
 
-        if (!user) {
-            return ResponseModel.createError(new Error('User not found'), 404);
+        if (!assessor) {
+            return ResponseModel.createError(new Error('Assessor not found'), 404);
         }
 
         const currentRound = await this.roundsRepository.findOne({
             where: {
-                organization: { id: user.organization.id },
+                organization: { id: assessor.organization.id },
                 isActive: true
             }
         });
@@ -241,7 +244,8 @@ export class RoundService {
         const existingAssessment = await this.assessmentRepository.findOne({
             where: {
                 round: { id: currentRound.id },
-                contributor: { id: user.id }
+                assessor: { id: assessor.id },
+                assessed: { id: assessmentData.contributorId }
             }
         });
 
@@ -249,20 +253,21 @@ export class RoundService {
             return ResponseModel.createError(new Error('Assessment already submitted'), 400);
         }
 
-        const contributor = await this.userRepository.findOne({
+        const assessed = await this.userRepository.findOne({
             where: { id: assessmentData.contributorId },
             relations: ['agreement', 'organization']
         });
 
-        if (!contributor ||
-            !contributor.organization ||
-            contributor.organization.id !== user.organization.id) {
-            return ResponseModel.createError(new Error('Contributor is not part of the same organization'), 400);
+        if (!assessed ||
+            !assessed.organization ||
+            assessed.organization.id !== assessor.organization.id) {
+            return ResponseModel.createError(new Error('Assessed and assessor not in the same org'), 400);
         }
 
         const newAssessment = this.assessmentRepository.create({
             round: currentRound,
-            contributor,
+            assessed,
+            assessor,
             cultureScore: assessmentData.cultureScore,
             workScore: assessmentData.workScore,
             feedbackPositive: assessmentData.feedbackPositive,
@@ -271,5 +276,70 @@ export class RoundService {
 
         await this.assessmentRepository.save(newAssessment);
         return ResponseModel.createSuccess({ id: newAssessment.id });
+    }
+
+
+    public async getAssessments(roundId: string, assessorId: string | null = null, assessedId: string | null = null)
+        : Promise<ResponseModel<AssessmentResponseModel[] | null>> {
+
+        const round = await this.roundsRepository.findOne({
+            where: { id: roundId },
+            relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
+        });
+
+        if (!round) {
+            return ResponseModel.createError(new Error('Round not found'), 404);
+        }
+
+        let assessments = round.assessments;
+        if (assessorId) {
+            assessments = round.assessments.filter(assessment => assessment.assessor.id === assessorId);
+        } else if (assessedId) {
+            assessments = round.assessments.filter(assessment => assessment.assessed.id === assessedId);
+        }
+
+        return ResponseModel.createSuccess(assessments.map((assessment) => ({
+            id: assessment.id,
+            assessedId: assessment.assessed.id,
+            assessorId: assessment.assessor.id,
+            cultureScore: assessment.cultureScore,
+            workScore: assessment.workScore,
+            feedbackPositive: assessment.feedbackPositive,
+            feedbackNegative: assessment.feedbackNegative
+        })));
+    }
+
+    public async remindToAssess(roundId: string, remindAll: boolean, contributors: string[])
+        : Promise<ResponseModel<null>> {
+        const round = await this.roundsRepository.findOne({
+            where: { id: roundId },
+            relations: ['organization']
+        });
+
+        if (!round) {
+            return ResponseModel.createError(new Error('Round not found'), 404);
+        }
+        const teamMembers = await this.userRepository.find({
+            where: {
+                organization: { id: round.organization.id },
+                agreement: Not(IsNull())
+            }
+        });
+
+        if (remindAll) {
+            for (const contributor of teamMembers) {
+                this.emailService.sendAssessmentReminder
+                    (contributor.email, contributor.username, round.organization.name);
+                return ResponseModel.createSuccess(null);
+            }
+        } else if (contributors) {
+            for (const contributor of contributors) {
+                const user = teamMembers.find(user => user.id === contributor);
+                if (user) {
+                    this.emailService.sendAssessmentReminder(user.email, user.username, round.organization.name);
+                }
+            }
+        }
+        return ResponseModel.createSuccess(null);
     }
 }

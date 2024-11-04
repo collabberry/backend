@@ -117,4 +117,30 @@ export class RoundsController {
             res.status(500).send('Internal Server Error');
         }
     }
+
+    public getAssessments = async (req: any, res: Response) => {
+        try {
+            const roundId = req.params.roundId;
+            const assessorId = req.query.assessorId;
+            const assessedId = req.query.assessedId;
+            const createdResponseModel = await this.roundService.getAssessments(roundId, assessorId, assessedId);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
+    public remind = async (req: any, res: Response) => {
+        try {
+            const roundId = req.params.roundId;
+            const remindAll: boolean = req.query.all;
+            const users: string[] = req.query.users;
+            const createdResponseModel = await this.roundService.remindToAssess(roundId, remindAll, users);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
 }

@@ -2,7 +2,8 @@
 
 export interface AssessmentResponseModel {
     id: string;
-    contributorId: string;
+    assessorId: string;
+    assessedId: string;
     cultureScore?: number | null;
     workScore?: number | null;
     feedbackPositive?: string | null;
