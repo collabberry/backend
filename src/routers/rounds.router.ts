@@ -14,7 +14,6 @@ export class RoundsRouter {
 
   private init(): void {
     this._router.get('/current', jwtMiddleware, this.roundsController.getCurrentRound);
-    this._router.put('/setIsActive', jwtMiddleware, this.roundsController.setIsActive);
     this._router.put('/:roundId', jwtMiddleware, this.roundsController.editRound);
     this._router.get('/', jwtMiddleware, this.roundsController.getRounds);
     this._router.get('/:roundId', jwtMiddleware, this.roundsController.getRoundById);

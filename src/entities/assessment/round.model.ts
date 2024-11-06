@@ -7,10 +7,6 @@ export class Round {
     @PrimaryGeneratedColumn('uuid')
     id!: string;
 
-    @ManyToOne(() => Organization, (organization) => organization.rounds, { nullable: false, onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'organization_id' })
-    organization!: Relation<Organization>;
-
     @Column({ type: 'int' })
     roundNumber!: number;
 
@@ -23,9 +19,8 @@ export class Round {
     @OneToMany(() => Assessment, (assessment) => assessment.round, { cascade: true })
     assessments!: Relation<Assessment[]>;
 
-    @Column({ type: 'boolean', default: true })
-    isActive!: boolean;
+    @ManyToOne(() => Organization, (organization) => organization.rounds, { nullable: false, onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'organization_id' })
+    organization!: Relation<Organization>;
 
-    @Column({ type: 'int', default: 7 })
-    assessmentDurationInDays!: number;
 }

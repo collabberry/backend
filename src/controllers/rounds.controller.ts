@@ -57,28 +57,6 @@ export class RoundsController {
         }
     }
 
-    public setIsActive = async (req: any, res: Response) => {
-        try {
-            const isActive: boolean = req.body.isActive;
-
-            const walletAddress = req.user.walletAddress;
-            const responseModel = await this.userService.getByWalletAddress(walletAddress);
-            if (!responseModel.data?.isAdmin) {
-                return res.status(401).json({ message: 'User is not an admin' });
-            }
-            if (!responseModel.data?.organization?.id) {
-                return res.status(401).json({ message: 'User does not have an org' });
-            }
-
-            const createdResponseModel = await this.roundService
-                .setIsActiveToRounds(responseModel.data?.organization?.id, isActive);
-            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
-        } catch (error) {
-            console.error('Error editing an org:', error);
-            res.status(500).send('Internal Server Error');
-        }
-    }
-
     public editRound = async (req: any, res: Response) => {
         try {
             const model = req.body;

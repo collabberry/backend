@@ -3,6 +3,7 @@ import cron from 'node-cron';
 
 import { container } from './inversify.config.js';
 import { RoundService } from './services/round.service.js';
+import { AppDataSource } from './data-source.js';
 
 dotenv_config();
 
@@ -11,6 +12,8 @@ function keepAlive(): void {
 }
 
 try {
+    AppDataSource.initialize().then(() => { console.log('App Data Source Connected'); });
+
     // --- Schedule tasks
     const schedule = process.env.ROUNDS_START_GENERATION_SCHEDULE;
     if (!schedule) {
@@ -21,9 +24,10 @@ try {
 
     cron.schedule(schedule, async () => {
         try {
-            await roundService.startRounds();
+            console.log('Creating rounds...');
+            await roundService.createRounds();
         } catch (error) {
-            console.error('Error starting rounds:', error);
+            console.error('Error creating rounds:', error);
         }
     });
 } catch (error) {

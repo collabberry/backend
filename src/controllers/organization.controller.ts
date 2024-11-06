@@ -6,18 +6,12 @@ import { handleResponse } from '../models/response_models/request_handler.js';
 import { fullOrganizationScheme, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel, createAgreementSchema } from '../models/org/createAgreement.model.js';
 import { uploadFileToS3 } from '../utils/fileUploader.js';
-import { RoundService } from '../services/round.service.js';
-import { CreateAssessmentModel, createAssessmentSchema } from '../models/rounds/createAssessment.model.js';
-import { UserService } from '../services/user.service.js';
 
 @injectable()
 export class OrganizationController {
 
     constructor(
-        private organizationService: OrganizationService,
-        private roundService: RoundService,
-        private userService: UserService
-    ) { }
+        private organizationService: OrganizationService) { }
 
     public createOrg = async (req: any, res: Response) => {
         try {

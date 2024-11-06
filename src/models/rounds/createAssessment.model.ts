@@ -13,6 +13,6 @@ export const createAssessmentSchema = Joi.object({
   contributorId: Joi.string().required(),
   cultureScore: Joi.number().required(),
   workScore: Joi.number().required(),
-  feedbackPositive: Joi.string().required(),
-  feedbackNegative: Joi.string().required()
+  feedbackPositive: Joi.string().optional(),
+  feedbackNegative: Joi.string().optional()
 });
