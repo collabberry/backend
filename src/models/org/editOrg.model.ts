@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { Cycle } from '../../entities/index.js';
+import { CompensationPeriod } from '../../entities/index.js';
 import { UserListModel } from '../user/userList.model.js';
 
 export interface OrgDetailsModel extends OrgModel {
@@ -11,10 +11,10 @@ export interface OrgModel {
     name: string;
     logo?: string;
     par: number;
-    cycle: Cycle;
-    startDate: Date;
-    roundsActivated: boolean;
-    nextRoundDate: Date;
+    compensationPeriod: CompensationPeriod | null;
+    compensationStartDay: Date | null;
+    assessmentDurationInDays: number | null;
+    assessmentStartDelayInDays: number | null;
 }
 
 export const fullOrganizationScheme = Joi.object({
@@ -22,7 +22,8 @@ export const fullOrganizationScheme = Joi.object({
     name: Joi.string().required(),
     logo: Joi.string().optional(),
     par: Joi.number().min(0).max(100).required(),
-    cycle: Joi.number().valid(...Object.values(Cycle)).required(),
-    startDate: Joi.date().optional(),
-    nextRoundDate: Joi.date().optional()
+    compensationPeriod: Joi.number().valid(...Object.values(CompensationPeriod)).required(),
+    compensationStartDay: Joi.date().optional(),
+    assessmentDurationInDays: Joi.number().optional(),
+    assessmentStartDelayInDays: Joi.number().optional()
 });

@@ -6,11 +6,10 @@
   "scripts": {
     "build": "yarn lint && tsc && cp -r ./emailTemplates ./dist/src",
     "start": "yarn build && node dist/src/index.js",
+    "start-background": "yarn build && node dist/src/roundsStartJob.index.js",
     "dev": "npx ts-node-dev src/index.ts",
     "lint": "tslint --fix -c tslint.json 'src/**/*.ts'",
-    "test": "mocha --config test/.mocharc.yml",
-    "sign": "node dist/src/utils/signScript.js",
-    "send-email": "node dist/src/services/test.js"
+    "test": "mocha --config test/.mocharc.yml"
   },
   "type": "module",
   "keywords": [],

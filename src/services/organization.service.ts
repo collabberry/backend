@@ -8,7 +8,10 @@ import { Agreement, Invitation, Organization, Role, Round, User } from '../entit
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
 import { MoreThan } from 'typeorm';
-import { calculateEndTime } from '../utils/endTime.util.js';
+import {
+    calculateAssessmentRoundEndTime,
+    calculateAssessmentRoundStartTime } from '../utils/roundTime.util.js';
+import { RoundService } from './round.service.js';
 
 
 @injectable()
@@ -20,7 +23,7 @@ export class OrganizationService {
     private agreementRepository;
     private roundsRepository;
 
-    constructor() {
+    constructor(private roundsService: RoundService) {
         this.userRepository = AppDataSource.getRepository(User);
         this.organizationRepository = AppDataSource.getRepository(Organization);
         this.invitationRepository = AppDataSource.getRepository(Invitation);
@@ -115,8 +118,10 @@ export class OrganizationService {
         org.name = orgModel.name;
         org.logo = orgModel.logo;
         org.par = orgModel.par;
-        org.cycle = orgModel.cycle;
-        org.nextRoundDate = orgModel.startDate;
+        org.compensationPeriod = orgModel.compensationPeriod;
+        org.compensationStartDay = orgModel.compensationStartDay;
+        org.assessmentDurationInDays = orgModel.assessmentDurationInDays;
+        org.assessmentStartDelayInDays = orgModel.assessmentStartDelayInDays;
         await this.organizationRepository.save(org);
 
         const round = await this.roundsRepository.findOne({
@@ -126,10 +131,15 @@ export class OrganizationService {
             }
         });
         if (round) {
-            round.startDate = orgModel.startDate;
-            round.endDate = calculateEndTime(orgModel.cycle, orgModel.startDate);
+            round.startDate = calculateAssessmentRoundStartTime(
+                org.compensationPeriod!,
+                org.compensationStartDay!,
+                org.assessmentStartDelayInDays!);
+            round.endDate = calculateAssessmentRoundEndTime(round.startDate, org.assessmentDurationInDays!);
             await this.roundsRepository.save(round);
         }
+
+        await this.roundsService.createRounds();
         return ResponseModel.createSuccess({ id: org.id });
     }
 
@@ -149,10 +159,10 @@ export class OrganizationService {
             name: org.name,
             logo: org.logo,
             par: org.par,
-            cycle: org.cycle,
-            nextRoundDate: org.nextRoundDate,
-            startDate: org.nextRoundDate,
-            roundsActivated: org.roundsActivated,
+            compensationPeriod: org.compensationPeriod,
+            compensationStartDay: org.compensationStartDay,
+            assessmentDurationInDays: org.assessmentDurationInDays,
+            assessmentStartDelayInDays: org.assessmentStartDelayInDays,
             contributors: org.contributors?.map((u) => ({
                 id: u.id,
                 walletAddress: u.address,
