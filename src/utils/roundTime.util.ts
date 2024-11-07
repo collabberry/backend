@@ -15,7 +15,7 @@ export function calculateAssessmentRoundStartTime(
 ): Date {
     const startTime = new Date(compensationCycleStartDate); // 6th of the month
 
-    switch (compensationCyclePeriod) {
+    switch ((+compensationCyclePeriod) as CompensationPeriod) {
         case CompensationPeriod.Weekly:
             // Move startTime one week forward
             startTime.setDate(startTime.getDate() + 7 + assessmentStartDelayInDays); // 14th
