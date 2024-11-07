@@ -28,6 +28,21 @@ services:
     depends_on:
       - mysql
 
+  scheduled-jobs:
+    <<: *common
+    container_name: scheduled-jobs
+    build: .
+    environment:
+      ROUNDS_START_GENERATION_SCHEDULE: "0 * * * *"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_PASS: password
+      DB_NAME: collabberry
+      DB_UNAME: root
+    command: ["node", "/app/dist/src/roundsStartJob.index.js"]
+    depends_on:
+      - mysql
+
   mysql:
     <<: *common
     container_name: mysql
