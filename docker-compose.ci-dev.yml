@@ -31,9 +31,8 @@ services:
   
   scheduled-jobs:
     <<: *common
-    container_name: backend
-    build: .
-    image: collabberry/scheduled-jobs:latest
+    container_name: scheduled-jobs
+    image: collabberry/backend-app:latest
     environment:
       ROUNDS_START_GENERATION_SCHEDULE: "0 * * * *"
       DB_HOST: mysql
