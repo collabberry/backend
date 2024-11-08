@@ -26,6 +26,7 @@ try {
         try {
             console.log('Creating rounds...');
             await roundService.createRounds();
+            console.log('Rounds created successfully!');
         } catch (error) {
             console.error('Error creating rounds:', error);
         }

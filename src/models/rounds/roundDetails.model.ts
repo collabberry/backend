@@ -6,6 +6,8 @@ export interface RoundResponseModel {
     startDate: Date;
     endDate: Date;
     submittedAssessments: AssessmentResponseModel[];
+    compensationCycleStartDate: Date;
+    compensationCycleEndDate: Date;
 }
 
 export enum RoundStatus {

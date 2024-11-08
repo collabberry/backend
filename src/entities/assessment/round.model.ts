@@ -10,11 +10,17 @@ export class Round {
     @Column({ type: 'int' })
     roundNumber!: number;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'timestamp' })
     startDate!: Date;
 
-    @Column({ type: 'timestamp', nullable: true })
-    endDate?: Date;
+    @Column({ type: 'timestamp' })
+    endDate!: Date;
+
+    @Column({ type: 'timestamp', nullable: false })
+    compensationCycleStartDate!: Date;
+
+    @Column({ type: 'timestamp', nullable: false })
+    compensationCycleEndDate!: Date;
 
     @OneToMany(() => Assessment, (assessment) => assessment.round, { cascade: true })
     assessments!: Relation<Assessment[]>;
