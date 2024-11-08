@@ -34,7 +34,7 @@ services:
     container_name: scheduled-jobs
     image: collabberry/backend-app:latest
     environment:
-      ROUNDS_START_GENERATION_SCHEDULE: "0 * * * *"
+      ROUNDS_START_GENERATION_SCHEDULE: "0 1,13 * * *"
       DB_HOST: mysql
       DB_PORT: 3306
       DB_PASS: password
