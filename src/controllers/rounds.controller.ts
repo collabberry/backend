@@ -112,9 +112,8 @@ export class RoundsController {
     public remind = async (req: any, res: Response) => {
         try {
             const roundId = req.params.roundId;
-            const remindAll: boolean = req.query.all;
-            const users: string[] = req.query.users;
-            const createdResponseModel = await this.roundService.remindToAssess(roundId, remindAll, users);
+            const { all, users } = req.body;
+            const createdResponseModel = await this.roundService.remindToAssess(roundId, all, users);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
         } catch (error) {
             console.error('Error editing an org:', error);
