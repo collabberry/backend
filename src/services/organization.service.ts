@@ -7,7 +7,6 @@ import { CreateOrgModel } from '../models/org/createOrg.model.js';
 import { Agreement, Invitation, Organization, Role, Round, User } from '../entities/index.js';
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
-import { MoreThan } from 'typeorm';
 import {
     calculateAssessmentRoundEndTime,
     calculateAssessmentRoundStartTime } from '../utils/roundTime.util.js';
@@ -124,22 +123,31 @@ export class OrganizationService {
         org.assessmentStartDelayInDays = orgModel.assessmentStartDelayInDays;
         await this.organizationRepository.save(org);
 
-        const round = await this.roundsRepository.findOne({
+        const now = new Date(Date.UTC(
+            new Date().getUTCFullYear(),
+            new Date().getUTCMonth(),
+            new Date().getUTCDate(),
+            0, 0, 0, 0
+        ));
+        const rounds = await this.roundsRepository.find({
             where: {
-                organization: org,
-                startDate: MoreThan(new Date())
+                organization: { id: org.id }
             }
         });
+        const round = rounds.find((r) => r.startDate >= now);
         if (round) {
+            console.log('Updating existing round');
             round.startDate = calculateAssessmentRoundStartTime(
                 org.compensationPeriod!,
                 org.compensationStartDay!,
                 org.assessmentStartDelayInDays!);
             round.endDate = calculateAssessmentRoundEndTime(round.startDate, org.assessmentDurationInDays!);
             await this.roundsRepository.save(round);
+        } else {
+            console.log('Creating new round');
+            await this.roundsService.createRounds();
         }
 
-        await this.roundsService.createRounds();
         return ResponseModel.createSuccess({ id: org.id });
     }
 

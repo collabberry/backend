@@ -15,6 +15,7 @@ export const AppDataSource = new DataSource({
     entities: SharedEntities,
     subscribers: [],
     migrations: [],
+    timezone: 'Z',
     extra: {
         // Add the allowPublicKeyRetrieval option here
         allowPublicKeyRetrieval: true

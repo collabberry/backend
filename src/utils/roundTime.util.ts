@@ -2,9 +2,17 @@ import { CompensationPeriod } from '../entities/index.js';
 
 
 // Assessment Rounds
-export function calculateAssessmentRoundEndTime(startTime: Date, assessmentDurationInDays: number): Date {
-    const endTime = new Date(startTime);
-    endTime.setDate(endTime.getDate() + assessmentDurationInDays);
+export function calculateAssessmentRoundEndTime(
+    compensationCycleStartDate: Date,
+    assessmentDurationInDays: number): Date {
+    const startTime = new Date(compensationCycleStartDate);
+    const endTime = new Date(Date.UTC(
+        startTime.getUTCFullYear(),
+        startTime.getUTCMonth(),
+        startTime.getUTCDate() + +assessmentDurationInDays,
+        23, 59, 0, 0
+    ));
+
     return endTime;
 }
 
@@ -13,33 +21,52 @@ export function calculateAssessmentRoundStartTime(
     compensationCycleStartDate: Date,
     assessmentStartDelayInDays: number
 ): Date {
-    const startTime = new Date(compensationCycleStartDate); // 6th of the month
-
+    const compCycleStartDate = new Date(compensationCycleStartDate);
+    const startTime = new Date(Date.UTC(
+        compCycleStartDate.getUTCFullYear(),
+        compCycleStartDate.getUTCMonth(),
+        compCycleStartDate.getUTCDate(),
+        0, 0, 0, 0
+    ));
     switch ((+compensationCyclePeriod) as CompensationPeriod) {
         case CompensationPeriod.Weekly:
             // Move startTime one week forward
-            startTime.setDate(startTime.getDate() + 7 + assessmentStartDelayInDays); // 14th
+            startTime.setDate(startTime.getDate() + 7 + +assessmentStartDelayInDays);
             break;
         case CompensationPeriod.Biweekly:
             // Move startTime two weeks forward
-            startTime.setDate(startTime.getDate() + 14 + assessmentStartDelayInDays);
+            startTime.setDate(startTime.getDate() + 14 + +assessmentStartDelayInDays);
             break;
         case CompensationPeriod.Monthly:
             // Move startTime one month forward
             startTime.setMonth(startTime.getMonth() + 1);
-            startTime.setDate(startTime.getDate() + assessmentStartDelayInDays);
+            startTime.setDate(startTime.getDate() + +assessmentStartDelayInDays);
             break;
         case CompensationPeriod.Quarterly:
             // Move startTime three months forward
             startTime.setMonth(startTime.getMonth() + 3);
-            startTime.setDate(startTime.getDate() + assessmentStartDelayInDays);
+            startTime.setDate(startTime.getDate() + +assessmentStartDelayInDays);
             break;
         default:
             throw new Error('Invalid cycle type');
     }
 
+    // If the calculated startTime is in the past, set it to the current date and time
+    const now = new Date(Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate(),
+        0, 0, 0, 0
+    ));
+
+    if (startTime < now) {
+        console.log('startTime < now');
+        return now;
+    }
+
     return startTime;
 }
+
 
 
 // Compensation Periods

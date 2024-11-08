@@ -32,13 +32,22 @@ export class RoundService {
      * Start rounds for all organizations that have the next round date set to today and have rounds activated
      */
     public async createRounds(): Promise<void> {
-        const sevenDaysFromNow = new Date();
+        const now = new Date(Date.UTC(
+            new Date().getUTCFullYear(),
+            new Date().getUTCMonth(),
+            new Date().getUTCDate(),
+            0, 0, 0, 0
+        ));
+        const sevenDaysFromNow = new Date(Date.UTC(
+            new Date().getUTCFullYear(),
+            new Date().getUTCMonth(),
+            new Date().getUTCDate(),
+            0, 0, 0, 0
+        ));
         sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+        sevenDaysFromNow.setUTCHours(23, 59, 59, 999);
 
         const orgs = await this.organizationRepository.find({
-            where: {
-                compensationStartDay: LessThan(sevenDaysFromNow)
-            },
             relations: ['rounds']
         });
 
@@ -49,38 +58,45 @@ export class RoundService {
                 org.compensationStartDay!,
                 org.assessmentStartDelayInDays!
             );
-            console.log('Start Assessment:', startRoundDate);
-            const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentStartDelayInDays!);
-            console.log('End Asssessment:', endRoundDate);
 
-            const round = this.roundsRepository.create({
-                organization: org,
-                roundNumber: (org.rounds?.length ?? 0) + 1,
-                startDate: startRoundDate,
-                endDate: endRoundDate
-            });
+            if (startRoundDate >= now && startRoundDate <= sevenDaysFromNow) {
+                console.log('Start Assessment:', startRoundDate);
+                const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
+                console.log('End Asssessment:', endRoundDate);
 
-            await this.roundsRepository.save(round);
-            console.log('Round created:', round.id);
-
-            const o = await this.organizationRepository.findOne({
-                where: { id: org.id }
-            });
-
-            o!.compensationStartDay = calculateNextCompensationPeriodStartDay(
-                o!.compensationStartDay!,
-                o!.compensationPeriod!
-            );
-
-            await this.organizationRepository.save(o!);
-            console.log('Next Compensation Cycle Start Day: ', o!.compensationStartDay);
-
-
-            // Notify contributors via email
-            if (org.contributors) {
-                org.contributors.forEach((user) =>
-                    this.emailService.sendRoundStarted(user.email, user.username, org.name)
+                const nextCycleStartDate = calculateNextCompensationPeriodStartDay(
+                    org.compensationStartDay!,
+                    org.compensationPeriod!
                 );
+
+                const round = this.roundsRepository.create({
+                    organization: org,
+                    roundNumber: (org.rounds?.length ?? 0) + 1,
+                    startDate: startRoundDate,
+                    endDate: endRoundDate,
+                    compensationCycleStartDate: org.compensationStartDay!,
+                    compensationCycleEndDate: nextCycleStartDate
+                });
+
+                await this.roundsRepository.save(round);
+                console.log('Round created:', round.id);
+
+                const o = await this.organizationRepository.findOne({
+                    where: { id: org.id }
+                });
+
+                o!.compensationStartDay = nextCycleStartDate;
+
+                await this.organizationRepository.save(o!);
+                console.log('Next Compensation Cycle Start Day: ', o!.compensationStartDay);
+
+
+                // Notify contributors via email
+                if (org.contributors) {
+                    org.contributors.forEach((user) =>
+                        this.emailService.sendRoundStarted(user.email, user.username, org.name)
+                    );
+                }
             }
         }
     }
@@ -89,8 +105,8 @@ export class RoundService {
         const currentRound = await this.roundsRepository.findOne({
             where: {
                 organization: { id: organizationId },
-                startDate: MoreThan(new Date()),
-                endDate: LessThan(new Date())
+                startDate: LessThan(new Date()),
+                endDate: MoreThan(new Date())
             },
             relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
@@ -118,6 +134,8 @@ export class RoundService {
                     : RoundStatus.Completed,
             startDate: currentRound.startDate,
             endDate: currentRound.endDate!,
+            compensationCycleStartDate: currentRound.compensationCycleStartDate,
+            compensationCycleEndDate: currentRound.compensationCycleEndDate,
             submittedAssessments
         };
 
@@ -133,7 +151,7 @@ export class RoundService {
         });
 
         if (!round) {
-            return ResponseModel.createError(new Error('No active round found for the organization'), 400);
+            return ResponseModel.createError(new Error('Invalid Round ID'), 400);
         }
 
         const submittedAssessments: AssessmentResponseModel[] = round.assessments.map((assessment) => ({
@@ -155,6 +173,8 @@ export class RoundService {
                     : RoundStatus.Completed,
             startDate: round.startDate,
             endDate: round.endDate!,
+            compensationCycleStartDate: round.compensationCycleStartDate,
+            compensationCycleEndDate: round.compensationCycleEndDate,
             submittedAssessments
         };
 
@@ -190,6 +210,8 @@ export class RoundService {
                     ? RoundStatus.InProgress
                     : RoundStatus.Completed,
             startDate: round.startDate,
+            compensationCycleStartDate: round.compensationCycleStartDate,
+            compensationCycleEndDate: round.compensationCycleEndDate,
             endDate: round.endDate!,
             submittedAssessments: round.assessments.map((assessment) => ({
                 id: assessment.id,
