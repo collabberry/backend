@@ -92,13 +92,13 @@ export class EmailService {
         };
 
         // Send the email
-        this.transporter.sendMail(mailOptions, (error: any, info: any) => {
-            if (error) {
-                console.error('Error sending email:', error);
-            } else {
-                console.log('Email sent:', info.response);
-            }
-        });
+        // this.transporter.sendMail(mailOptions, (error: any, info: any) => {
+        //     if (error) {
+        //         console.error('Error sending email:', error);
+        //     } else {
+        //         console.log('Email sent:', info.response);
+        //     }
+        // });
     }
 
 
