@@ -168,7 +168,7 @@ export class RoundService {
             id: round.id,
             status: round.startDate > new Date()
                 ? RoundStatus.NotStarted
-                : round.endDate! < new Date()
+                : round.endDate! > new Date()
                     ? RoundStatus.InProgress
                     : RoundStatus.Completed,
             startDate: round.startDate,
@@ -206,7 +206,7 @@ export class RoundService {
             id: round.id,
             status: round.startDate > new Date()
                 ? RoundStatus.NotStarted
-                : round.endDate! < new Date()
+                : round.endDate! > new Date()
                     ? RoundStatus.InProgress
                     : RoundStatus.Completed,
             startDate: round.startDate,
