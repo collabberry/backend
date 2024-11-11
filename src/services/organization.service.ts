@@ -8,6 +8,7 @@ import { Agreement, Invitation, Organization, Role, Round, User } from '../entit
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
 import {
+    beginningOfToday,
     calculateAssessmentRoundEndTime,
     calculateAssessmentRoundStartTime } from '../utils/roundTime.util.js';
 import { RoundService } from './round.service.js';
@@ -123,18 +124,12 @@ export class OrganizationService {
         org.assessmentStartDelayInDays = orgModel.assessmentStartDelayInDays;
         await this.organizationRepository.save(org);
 
-        const now = new Date(Date.UTC(
-            new Date().getUTCFullYear(),
-            new Date().getUTCMonth(),
-            new Date().getUTCDate(),
-            0, 0, 0, 0
-        ));
         const rounds = await this.roundsRepository.find({
             where: {
                 organization: { id: org.id }
             }
         });
-        const round = rounds.find((r) => r.startDate >= now);
+        const round = rounds.find((r) => r.startDate >= beginningOfToday());
         if (round) {
             console.log('Updating existing round');
             round.startDate = calculateAssessmentRoundStartTime(

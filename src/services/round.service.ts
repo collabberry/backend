@@ -9,9 +9,11 @@ import { AssessmentResponseModel } from '../models/rounds/assessmentResponse.mod
 import { CreateAssessmentModel } from '../models/rounds/createAssessment.model.js';
 import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
 import {
+    beginningOfToday,
     calculateAssessmentRoundEndTime,
     calculateAssessmentRoundStartTime,
-    calculateNextCompensationPeriodStartDay
+    calculateNextCompensationPeriodStartDay,
+    endOfToday
 } from '../utils/roundTime.util.js';
 
 @injectable()
@@ -32,20 +34,8 @@ export class RoundService {
      * Start rounds for all organizations that have the next round date set to today and have rounds activated
      */
     public async createRounds(): Promise<void> {
-        const now = new Date(Date.UTC(
-            new Date().getUTCFullYear(),
-            new Date().getUTCMonth(),
-            new Date().getUTCDate(),
-            0, 0, 0, 0
-        ));
-        const sevenDaysFromNow = new Date(Date.UTC(
-            new Date().getUTCFullYear(),
-            new Date().getUTCMonth(),
-            new Date().getUTCDate(),
-            0, 0, 0, 0
-        ));
+        const sevenDaysFromNow = endOfToday();
         sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-        sevenDaysFromNow.setUTCHours(23, 59, 59, 999);
 
         const orgs = await this.organizationRepository.find({
             relations: ['rounds']
@@ -59,7 +49,7 @@ export class RoundService {
                 org.assessmentStartDelayInDays!
             );
 
-            if (startRoundDate >= now && startRoundDate <= sevenDaysFromNow) {
+            if (startRoundDate >= beginningOfToday() && startRoundDate <= sevenDaysFromNow) {
                 console.log('Start Assessment:', startRoundDate);
                 const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
                 console.log('End Asssessment:', endRoundDate);
@@ -105,8 +95,8 @@ export class RoundService {
         const currentRound = await this.roundsRepository.findOne({
             where: {
                 organization: { id: organizationId },
-                startDate: LessThan(new Date()),
-                endDate: MoreThan(new Date())
+                startDate: LessThan(beginningOfToday()),
+                endDate: MoreThan(endOfToday())
             },
             relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
@@ -127,9 +117,9 @@ export class RoundService {
 
         const roundResponse: RoundResponseModel = {
             id: currentRound.id,
-            status: currentRound.startDate > new Date()
+            status: currentRound.startDate >= beginningOfToday()
                 ? RoundStatus.NotStarted
-                : currentRound.endDate! < new Date()
+                : currentRound.endDate && currentRound.endDate >= endOfToday()
                     ? RoundStatus.InProgress
                     : RoundStatus.Completed,
             startDate: currentRound.startDate,
@@ -166,9 +156,9 @@ export class RoundService {
 
         const roundResponse: RoundResponseModel = {
             id: round.id,
-            status: round.startDate > new Date()
+            status: round.startDate >= beginningOfToday()
                 ? RoundStatus.NotStarted
-                : round.endDate! > new Date()
+                : round.endDate && round.endDate >= endOfToday()
                     ? RoundStatus.InProgress
                     : RoundStatus.Completed,
             startDate: round.startDate,
@@ -204,9 +194,9 @@ export class RoundService {
 
         return ResponseModel.createSuccess(rounds.map((round) => ({
             id: round.id,
-            status: round.startDate > new Date()
+            status: round.startDate >= beginningOfToday()
                 ? RoundStatus.NotStarted
-                : round.endDate! > new Date()
+                : round.endDate && round.endDate >= endOfToday()
                     ? RoundStatus.InProgress
                     : RoundStatus.Completed,
             startDate: round.startDate,
@@ -240,8 +230,8 @@ export class RoundService {
         const currentRound = await this.roundsRepository.findOne({
             where: {
                 organization: { id: assessor.organization.id },
-                startDate: MoreThan(new Date()),
-                endDate: LessThan(new Date())
+                startDate: MoreThan(beginningOfToday()),
+                endDate: LessThan(endOfToday())
             }
         });
 
