@@ -51,17 +51,9 @@ export function calculateAssessmentRoundStartTime(
             throw new Error('Invalid cycle type');
     }
 
-    // If the calculated startTime is in the past, set it to the current date and time
-    const now = new Date(Date.UTC(
-        new Date().getUTCFullYear(),
-        new Date().getUTCMonth(),
-        new Date().getUTCDate(),
-        0, 0, 0, 0
-    ));
-
-    if (startTime < now) {
+    if (startTime < beginningOfToday()) {
         console.log('startTime < now');
-        return now;
+        return beginningOfToday();
     }
 
     return startTime;
@@ -91,4 +83,22 @@ export function calculateNextCompensationPeriodStartDay(compensationStartDay: Da
     }
 
     return nextStartDay;
+}
+
+export function beginningOfToday() {
+    return new Date(Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate(),
+        0, 0, 0, 0
+    ))
+}
+
+export function endOfToday() {
+    return new Date(Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate(),
+        23, 59, 59, 999
+    ))
 }
