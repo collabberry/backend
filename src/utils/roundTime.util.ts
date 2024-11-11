@@ -85,20 +85,20 @@ export function calculateNextCompensationPeriodStartDay(compensationStartDay: Da
     return nextStartDay;
 }
 
-export function beginningOfToday() {
+export function beginningOfToday(): Date {
     return new Date(Date.UTC(
         new Date().getUTCFullYear(),
         new Date().getUTCMonth(),
         new Date().getUTCDate(),
         0, 0, 0, 0
-    ))
+    ));
 }
 
-export function endOfToday() {
+export function endOfToday(): Date {
     return new Date(Date.UTC(
         new Date().getUTCFullYear(),
         new Date().getUTCMonth(),
         new Date().getUTCDate(),
         23, 59, 59, 999
-    ))
+    ));
 }
