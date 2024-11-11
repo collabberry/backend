@@ -22,8 +22,12 @@ export class RoundsController {
 
     public getCurrentRound = async (req: any, res: Response) => {
         try {
-            const orgId = req.params.orgId;
-            const createdResponseModel = await this.roundService.getCurrentRound(orgId);
+            const walletAddress = req.user.walletAddress;
+            const responseModel = await this.userService.getByWalletAddress(walletAddress);
+            if (!responseModel.data?.organization?.id) {
+                return res.status(401).json({ message: 'User does not have an org' });
+            }
+            const createdResponseModel = await this.roundService.getCurrentRound(responseModel.data?.organization?.id);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
         } catch (error) {
             console.error('Error editing an org:', error);
