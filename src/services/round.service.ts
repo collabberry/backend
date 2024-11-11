@@ -117,7 +117,7 @@ export class RoundService {
 
         const roundResponse: RoundResponseModel = {
             id: currentRound.id,
-            status: currentRound.startDate >= beginningOfToday()
+            status: currentRound.startDate > beginningOfToday()
                 ? RoundStatus.NotStarted
                 : currentRound.endDate && currentRound.endDate >= endOfToday()
                     ? RoundStatus.InProgress
@@ -156,7 +156,7 @@ export class RoundService {
 
         const roundResponse: RoundResponseModel = {
             id: round.id,
-            status: round.startDate >= beginningOfToday()
+            status: round.startDate > beginningOfToday()
                 ? RoundStatus.NotStarted
                 : round.endDate && round.endDate >= endOfToday()
                     ? RoundStatus.InProgress
@@ -194,7 +194,7 @@ export class RoundService {
 
         return ResponseModel.createSuccess(rounds.map((round) => ({
             id: round.id,
-            status: round.startDate >= beginningOfToday()
+            status: round.startDate > beginningOfToday()
                 ? RoundStatus.NotStarted
                 : round.endDate && round.endDate >= endOfToday()
                     ? RoundStatus.InProgress
