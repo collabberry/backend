@@ -1,5 +1,5 @@
 import { injectable } from 'inversify';
-import { IsNull, LessThan, MoreThan, Not } from 'typeorm';
+import { IsNull, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual, Not } from 'typeorm';
 import { EmailService } from './email.service.js';
 import { Assessment, Organization, Round, User } from '../entities/index.js';
 import { AppDataSource } from '../data-source.js';
@@ -95,8 +95,8 @@ export class RoundService {
         const currentRound = await this.roundsRepository.findOne({
             where: {
                 organization: { id: organizationId },
-                startDate: LessThan(beginningOfToday()),
-                endDate: MoreThan(endOfToday())
+                startDate: LessThanOrEqual(beginningOfToday()),
+                endDate: MoreThanOrEqual(endOfToday())
             },
             relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
@@ -114,6 +114,10 @@ export class RoundService {
             feedbackPositive: assessment.feedbackPositive,
             feedbackNegative: assessment.feedbackNegative
         }));
+
+        console.log('currentRound.startDate', currentRound.startDate);
+        console.log('end time check', currentRound.endDate >= endOfToday());
+        console.log('begining', beginningOfToday());
 
         const roundResponse: RoundResponseModel = {
             id: currentRound.id,
