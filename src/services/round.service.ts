@@ -234,8 +234,8 @@ export class RoundService {
         const currentRound = await this.roundsRepository.findOne({
             where: {
                 organization: { id: assessor.organization.id },
-                startDate: MoreThan(beginningOfToday()),
-                endDate: LessThan(endOfToday())
+                startDate: LessThanOrEqual(beginningOfToday()),
+                endDate: MoreThanOrEqual(endOfToday())
             }
         });
 
