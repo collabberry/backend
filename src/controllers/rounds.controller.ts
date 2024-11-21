@@ -1,11 +1,6 @@
 import { injectable } from 'inversify';
 import { Response } from 'express';
-import { CreateOrgModel, organizationScheme } from '../models/org/createOrg.model.js';
-import { OrganizationService } from '../services/organization.service.js';
 import { handleResponse } from '../models/response_models/request_handler.js';
-import { fullOrganizationScheme, OrgModel } from '../models/org/editOrg.model.js';
-import { CreateAgreementModel, createAgreementSchema } from '../models/org/createAgreement.model.js';
-import { uploadFileToS3 } from '../utils/fileUploader.js';
 import { RoundService } from '../services/round.service.js';
 import { CreateAssessmentModel, createAssessmentSchema } from '../models/rounds/createAssessment.model.js';
 import { UserService } from '../services/user.service.js';
@@ -14,7 +9,6 @@ import { UserService } from '../services/user.service.js';
 export class RoundsController {
 
     constructor(
-        private organizationService: OrganizationService,
         private roundService: RoundService,
         private userService: UserService
     ) { }

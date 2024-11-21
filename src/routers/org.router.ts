@@ -31,6 +31,7 @@ export class OrgRouter {
     this._router.get('/invitation', jwtMiddleware, this.orgController.getInvitationToken);
     this._router.post('/agreement', jwtMiddleware, this.orgController.addAgreement);
     this._router.get('/contributors/:contributorId/agreements', jwtMiddleware, this.orgController.getContribAgreement);
+    this._router.get('/contributors/myScores', jwtMiddleware, this.orgController.getMyScores);
   }
 
   public get router(): Router {

@@ -135,4 +135,16 @@ export class OrganizationController {
             res.status(500).send('Internal Server Error');
         }
     }
+
+    public getMyScores = async (req: any, res: Response) => {
+        try {
+            const createdResponseModel = await this.organizationService
+                .getScoresByWalletAddress(req.user.walletAddress);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
 }
