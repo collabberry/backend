@@ -10,7 +10,8 @@ import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
 import {
     beginningOfToday,
     calculateAssessmentRoundEndTime,
-    calculateAssessmentRoundStartTime } from '../utils/roundTime.util.js';
+    calculateAssessmentRoundStartTime
+} from '../utils/roundTime.util.js';
 import { RoundService } from './round.service.js';
 
 
@@ -239,4 +240,43 @@ export class OrganizationService {
 
         return ResponseModel.createSuccess(agreement);
     }
+    public async getScoresByWalletAddress(walletAddress: string): Promise<ResponseModel<any | null>> {
+        const user = await this.userRepository.findOne({
+            where: { address: walletAddress.toLowerCase() },
+            relations: ['organization']
+        });
+
+        if (!user || !user.organization) {
+            return ResponseModel.createError(new Error('User not found or not part of an organization'), 404);
+        }
+
+        const rounds = await this.roundsRepository.find({
+            where: { organization: { id: user.organization.id } },
+            relations: ['assessments', 'assessments.assessed']
+        });
+
+        const scores = rounds.map((r) => {
+            const userAssessments = r.assessments.filter(a => a.assessed.id === user.id);
+
+            const calculateAverage = (assessments: any[], key: string) => {
+                const validScores = assessments
+                    .map((a: any) => a[key] ?? 0)
+                    .filter((score: number) => score !== 0);
+                return validScores.length > 0
+                    ? validScores.reduce((acc: number, score: number) => acc + score, 0) / validScores.length
+                    : 0;
+            };
+
+            return {
+                roundId: r.id,
+                roundName: r.roundNumber,
+                assessments: userAssessments,
+                totalCultureScore: calculateAverage(userAssessments, 'cultureScore'),
+                totalWorkScore: calculateAverage(userAssessments, 'workScore')
+            };
+        });
+
+        return ResponseModel.createSuccess(scores);
+    }
+
 }
