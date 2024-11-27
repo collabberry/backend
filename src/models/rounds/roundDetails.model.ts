@@ -5,9 +5,31 @@ export interface RoundResponseModel {
     status: RoundStatus;
     startDate: Date;
     endDate: Date;
+    contributors: ContributorRoundModel[];
     submittedAssessments: AssessmentResponseModel[];
     compensationCycleStartDate: Date;
     compensationCycleEndDate: Date;
+}
+
+export interface ListRoundResponseModel {
+    id: string;
+    status: RoundStatus;
+    startDate: Date;
+    endDate: Date;
+    compensationCycleStartDate: Date;
+    compensationCycleEndDate: Date;
+}
+
+// All contributors in the org with their scores
+export interface ContributorRoundModel {
+    id: string;
+    username: string;
+    cultureScore: number;
+    workScore: number;
+    totalScore: number;
+    teamPoints: number;
+    fiat: number;
+    hasAssessed: boolean;
 }
 
 export enum RoundStatus {

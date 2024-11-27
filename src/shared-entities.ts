@@ -6,7 +6,8 @@ import {
     Agreement,
     Organization,
     Invitation,
-    WalletNonce
+    WalletNonce,
+    ContributorRoundCompensation
 } from './entities/index.js';
 
 
@@ -14,6 +15,7 @@ export const SharedEntities = [
     User,
     Assessment,
     Round,
+    ContributorRoundCompensation,
     Agreement,
     Organization,
     Invitation,
