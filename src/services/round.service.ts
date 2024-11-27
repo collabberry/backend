@@ -1,9 +1,9 @@
 import { injectable } from 'inversify';
-import { IsNull, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual, Not } from 'typeorm';
+import { Equal, IsNull, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual, Not } from 'typeorm';
 import { EmailService } from './email.service.js';
-import { Assessment, Organization, Round, User } from '../entities/index.js';
+import { Assessment, ContributorRoundCompensation, Organization, Round, User } from '../entities/index.js';
 import { AppDataSource } from '../data-source.js';
-import { RoundResponseModel, RoundStatus } from '../models/rounds/roundDetails.model.js';
+import { ContributorRoundModel, ListRoundResponseModel, RoundResponseModel, RoundStatus } from '../models/rounds/roundDetails.model.js';
 import { ResponseModel } from '../models/response_models/response_model.js';
 import { AssessmentResponseModel } from '../models/rounds/assessmentResponse.model.js';
 import { CreateAssessmentModel } from '../models/rounds/createAssessment.model.js';
@@ -91,6 +91,78 @@ export class RoundService {
         }
     }
 
+    public async completeRounds(): Promise<void> {
+        const today = endOfToday();
+
+        // Fetch rounds ending today, including required relations
+        const rounds = await this.roundsRepository.find({
+            // where: { endDate: Equal(today) },
+            relations: ['assessments', 'assessments.assessed.agreement', 'organization']
+        });
+
+
+        for (const round of rounds) {
+            const par = round.organization.par;
+            // Initialize a map to group scores by contributors (assessed)
+            const scoresByContributor = new Map<string, {
+                cultureTotal: number,
+                workTotal: number,
+                count: number,
+                commitment: number,
+                marketRate: number,
+                fiat: number
+            }>();
+
+            // Group assessments by the contributor being assessed
+            for (const assessment of round.assessments) {
+                const assessedId = assessment.assessed.id;
+
+                if (!scoresByContributor.has(assessedId)) {
+                    scoresByContributor.set(assessedId, {
+                        cultureTotal: 0,
+                        workTotal: 0,
+                        count: 0,
+                        marketRate: assessment.assessed.agreement!.marketRate,
+                        commitment: assessment.assessed.agreement!.commitment,
+                        fiat: assessment.assessed.agreement!.fiatRequested
+                    });
+                }
+
+                const contributorScores = scoresByContributor.get(assessedId)!;
+
+                // Add valid scores and increment count if any score is valid
+                contributorScores.cultureTotal += assessment.cultureScore ? assessment.cultureScore : 0;
+                contributorScores.workTotal += assessment.workScore ? assessment.workScore : 0;
+                contributorScores.count += (assessment.cultureScore || assessment.workScore) ? 1 : 0;
+            }
+
+            // Calculate average scores for each contributor
+            for (const [contributorId, scores] of scoresByContributor) {
+                const comp = new ContributorRoundCompensation();
+                comp.round = round;
+                comp.contributor = { id: contributorId } as User;
+                comp.culturalScore = scores.cultureTotal / scores.count;
+                comp.workScore = scores.workTotal / scores.count;
+                comp.agreement_commitment = scores.commitment;
+                comp.agreement_mr = scores.marketRate;
+                comp.agreement_fiat = scores.fiat;
+                const finalScore = (scores.cultureTotal + scores.workTotal) / 2;
+                const baseSalary = (scores.commitment / 100) * scores.marketRate;
+
+                const sam = (finalScore - 3) * ((par / 100) / 2);
+                const totalComp = baseSalary * (1 + sam);
+
+                const fiatRequested = scores.fiat;
+
+                comp.tp = totalComp - fiatRequested < 0 ? 0 : totalComp - fiatRequested;
+                comp.fiat = fiatRequested > totalComp ? totalComp : fiatRequested;
+
+                await AppDataSource.manager.save(comp);
+            }
+
+        }
+    }
+
     public async getCurrentRound(organizationId: string): Promise<ResponseModel<RoundResponseModel | null>> {
         const currentRound = await this.roundsRepository.findOne({
             where: {
@@ -105,49 +177,63 @@ export class RoundService {
             return ResponseModel.createError(new Error('No active round found for the organization'), 400);
         }
 
-        const submittedAssessments: AssessmentResponseModel[] = currentRound.assessments.map((assessment) => ({
-            id: assessment.id,
-            assessedId: assessment.assessed.id,
-            assessorId: assessment.assessor.id,
-            cultureScore: assessment.cultureScore,
-            workScore: assessment.workScore,
-            feedbackPositive: assessment.feedbackPositive,
-            feedbackNegative: assessment.feedbackNegative
-        }));
-
-        console.log('currentRound.startDate', currentRound.startDate);
-        console.log('end time check', currentRound.endDate >= endOfToday());
-        console.log('begining', beginningOfToday());
-
-        const roundResponse: RoundResponseModel = {
-            id: currentRound.id,
-            status: currentRound.startDate > beginningOfToday()
-                ? RoundStatus.NotStarted
-                : currentRound.endDate && currentRound.endDate >= endOfToday()
-                    ? RoundStatus.InProgress
-                    : RoundStatus.Completed,
-            startDate: currentRound.startDate,
-            endDate: currentRound.endDate!,
-            compensationCycleStartDate: currentRound.compensationCycleStartDate,
-            compensationCycleEndDate: currentRound.compensationCycleEndDate,
-            submittedAssessments
-        };
-
-        return ResponseModel.createSuccess(roundResponse);
+        return this.getRoundById(currentRound.id);
     }
-
     public async getRoundById(roundId: string): Promise<ResponseModel<RoundResponseModel | null>> {
         const round = await this.roundsRepository.findOne({
             where: {
                 id: roundId
             },
-            relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
+            relations: ['assessments', 'assessments.assessor', 'assessments.assessed', 'organization.contributors']
         });
 
         if (!round) {
             return ResponseModel.createError(new Error('Invalid Round ID'), 400);
         }
 
+        // Initialize contributors map
+        const contributorsMap = new Map<string, ContributorRoundModel>();
+
+        // Add all contributors to the map with default values
+        round.organization.contributors!.forEach(contributor => {
+            contributorsMap.set(contributor.id, {
+                id: contributor.id,
+                username: contributor.username,
+                cultureScore: 0,
+                workScore: 0,
+                totalScore: 0,
+                teamPoints: 10, // Default value, replace with actual logic if needed
+                fiat: 10, // Default value, replace with actual logic if needed
+                hasAssessed: false
+            });
+        });
+
+        // Process assessments to update scores
+        round.assessments.forEach((assessment) => {
+            const { id, username } = assessment.assessor;
+            const contributor = contributorsMap.get(id);
+
+            if (contributor) {
+                // Update scores
+                contributor.cultureScore += assessment.cultureScore || 0;
+                contributor.workScore += assessment.workScore || 0;
+                contributor.hasAssessed = true;
+            }
+        });
+
+        // Calculate averages for each contributor
+        contributorsMap.forEach((contributor) => {
+            const contributorAssessments = round.assessments.filter(a => a.assessor.id === contributor.id);
+            const numAssessments = contributorAssessments.length;
+
+            if (numAssessments > 0) {
+                contributor.cultureScore /= numAssessments;
+                contributor.workScore /= numAssessments;
+                contributor.totalScore = (contributor.cultureScore + contributor.workScore) / 2;
+            }
+        });
+
+        // Map submitted assessments
         const submittedAssessments: AssessmentResponseModel[] = round.assessments.map((assessment) => ({
             id: assessment.id,
             assessedId: assessment.assessed.id,
@@ -158,6 +244,7 @@ export class RoundService {
             feedbackNegative: assessment.feedbackNegative
         }));
 
+        // Create the round response
         const roundResponse: RoundResponseModel = {
             id: round.id,
             status: round.startDate > beginningOfToday()
@@ -169,6 +256,7 @@ export class RoundService {
             endDate: round.endDate!,
             compensationCycleStartDate: round.compensationCycleStartDate,
             compensationCycleEndDate: round.compensationCycleEndDate,
+            contributors: Array.from(contributorsMap.values()),
             submittedAssessments
         };
 
@@ -189,36 +277,27 @@ export class RoundService {
 
         return ResponseModel.createSuccess(null);
     }
-
-    public async getRounds(organizationId: string): Promise<ResponseModel<RoundResponseModel[] | null>> {
+    public async getRounds(organizationId: string): Promise<ResponseModel<ListRoundResponseModel[] | null>> {
         const rounds = await this.roundsRepository.find({
             where: { organization: { id: organizationId } },
             relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
 
-        return ResponseModel.createSuccess(rounds.map((round) => ({
-            id: round.id,
-            status: round.startDate > beginningOfToday()
-                ? RoundStatus.NotStarted
-                : round.endDate && round.endDate >= endOfToday()
-                    ? RoundStatus.InProgress
-                    : RoundStatus.Completed,
-            startDate: round.startDate,
-            compensationCycleStartDate: round.compensationCycleStartDate,
-            compensationCycleEndDate: round.compensationCycleEndDate,
-            endDate: round.endDate!,
-            submittedAssessments: round.assessments.map((assessment) => ({
-                id: assessment.id,
-                assessorId: assessment.assessor.id,
-                assessedId: assessment.assessed.id,
-                cultureScore: assessment.cultureScore,
-                workScore: assessment.workScore,
-                feedbackPositive: assessment.feedbackPositive,
-                feedbackNegative: assessment.feedbackNegative
-            } as AssessmentResponseModel))
-        })));
+        return ResponseModel.createSuccess(rounds.map((round) => {
+            return {
+                id: round.id,
+                status: round.startDate > beginningOfToday()
+                    ? RoundStatus.NotStarted
+                    : round.endDate && round.endDate >= endOfToday()
+                        ? RoundStatus.InProgress
+                        : RoundStatus.Completed,
+                startDate: round.startDate,
+                compensationCycleStartDate: round.compensationCycleStartDate,
+                compensationCycleEndDate: round.compensationCycleEndDate,
+                endDate: round.endDate!
+            };
+        }));
     }
-
     public async addAssessment(walletAddress: string, assessmentData: CreateAssessmentModel):
         Promise<ResponseModel<CreatedResponseModel | null>> {
 
@@ -279,8 +358,6 @@ export class RoundService {
         await this.assessmentRepository.save(newAssessment);
         return ResponseModel.createSuccess({ id: newAssessment.id });
     }
-
-
     public async getAssessments(roundId: string, assessorId: string | null = null, assessedId: string | null = null)
         : Promise<ResponseModel<AssessmentResponseModel[] | null>> {
 
