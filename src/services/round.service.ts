@@ -34,6 +34,7 @@ export class RoundService {
      * Start rounds for all organizations that have the next round date set to today and have rounds activated
      */
     public async createRounds(): Promise<void> {
+        console.log('[startRounds] Starting round creation...');
         const sevenDaysFromNow = endOfToday();
         sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
@@ -50,9 +51,7 @@ export class RoundService {
             );
 
             if (startRoundDate >= beginningOfToday() && startRoundDate <= sevenDaysFromNow) {
-                console.log('Start Assessment:', startRoundDate);
                 const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
-                console.log('End Asssessment:', endRoundDate);
 
                 const nextCycleStartDate = calculateNextCompensationPeriodStartDay(
                     org.compensationStartDay!,
@@ -69,7 +68,7 @@ export class RoundService {
                 });
 
                 await this.roundsRepository.save(round);
-                console.log('Round created:', round.id);
+                console.log('[startRounds] Round created:', round.id);
 
                 const o = await this.organizationRepository.findOne({
                     where: { id: org.id }
@@ -78,7 +77,6 @@ export class RoundService {
                 o!.compensationStartDay = nextCycleStartDate;
 
                 await this.organizationRepository.save(o!);
-                console.log('Next Compensation Cycle Start Day: ', o!.compensationStartDay);
 
 
                 // Notify contributors via email
@@ -89,19 +87,28 @@ export class RoundService {
                 }
             }
         }
+
+        console.log('[startRounds] Round creation completed.');
     }
 
     public async completeRounds(): Promise<void> {
+
+        console.log('[completeRounds] Starting round completion...');
         const today = endOfToday();
 
         // Fetch rounds ending today, including required relations
         const rounds = await this.roundsRepository.find({
-            // where: { endDate: Equal(today) },
+            where: {
+                isCompleted: false,
+                endDate: LessThanOrEqual(today)
+            },
             relations: ['assessments', 'assessments.assessed.agreement', 'organization']
         });
 
 
         for (const round of rounds) {
+            console.log('[completeRounds] Completing round:', round.id);
+
             const par = round.organization.par;
             // Initialize a map to group scores by contributors (assessed)
             const scoresByContributor = new Map<string, {
@@ -146,21 +153,31 @@ export class RoundService {
                 comp.agreement_commitment = scores.commitment;
                 comp.agreement_mr = scores.marketRate;
                 comp.agreement_fiat = scores.fiat;
-                const finalScore = (scores.cultureTotal + scores.workTotal) / 2;
+                const finalScore = (comp.culturalScore + comp.workScore) / 2;
                 const baseSalary = (scores.commitment / 100) * scores.marketRate;
 
                 const sam = (finalScore - 3) * ((par / 100) / 2);
                 const totalComp = baseSalary * (1 + sam);
-
                 const fiatRequested = scores.fiat;
 
-                comp.tp = totalComp - fiatRequested < 0 ? 0 : totalComp - fiatRequested;
-                comp.fiat = fiatRequested > totalComp ? totalComp : fiatRequested;
+                const validTotalComp = isNaN(totalComp) || totalComp === null ? 0 : Number(totalComp);
+                const validFiatRequested = isNaN(fiatRequested) || fiatRequested === null ? 0 : Number(fiatRequested);
+
+                const tpValue = validTotalComp - validFiatRequested < 0 ? 0 : validTotalComp - validFiatRequested;
+                const fiatValue = validFiatRequested > validTotalComp ? validTotalComp : validFiatRequested;
+
+                comp.tp = Number(tpValue.toFixed(2));
+                comp.fiat = Number(fiatValue.toFixed(2));
 
                 await AppDataSource.manager.save(comp);
+
             }
 
+            round.isCompleted = true;
+            await AppDataSource.manager.save(round);
         }
+
+        console.log('[completeRounds] Round completion completed.');
     }
 
     public async getCurrentRound(organizationId: string): Promise<ResponseModel<RoundResponseModel | null>> {
@@ -195,49 +212,40 @@ export class RoundService {
         const contributorsMap = new Map<string, ContributorRoundModel>();
 
         // Add all contributors to the map with default values
-        round.organization.contributors!.forEach(contributor => {
-            contributorsMap.set(contributor.id, {
-                id: contributor.id,
-                username: contributor.username,
-                cultureScore: 0,
-                workScore: 0,
-                totalScore: 0,
-                teamPoints: 10, // Default value, replace with actual logic if needed
-                fiat: 10, // Default value, replace with actual logic if needed
-                hasAssessed: false
-            });
-        });
+        await Promise.all(
+            round.organization.contributors!.map(async (contributor) => {
+                // Fetch the compensation data for the current contributor
+                const compensation = await AppDataSource.manager.findOne(ContributorRoundCompensation, {
+                    where: {
+                        round: { id: round.id },
+                        contributor: { id: contributor.id }
+                    }
+                });
 
-        // Process assessments to update scores
-        round.assessments.forEach((assessment) => {
-            const { id, username } = assessment.assessor;
-            const contributor = contributorsMap.get(id);
+                console.log(compensation?.culturalScore, typeof (compensation?.culturalScore));
 
-            if (contributor) {
-                // Update scores
-                contributor.cultureScore += assessment.cultureScore || 0;
-                contributor.workScore += assessment.workScore || 0;
-                contributor.hasAssessed = true;
-            }
-        });
-
-        // Calculate averages for each contributor
-        contributorsMap.forEach((contributor) => {
-            const contributorAssessments = round.assessments.filter(a => a.assessor.id === contributor.id);
-            const numAssessments = contributorAssessments.length;
-
-            if (numAssessments > 0) {
-                contributor.cultureScore /= numAssessments;
-                contributor.workScore /= numAssessments;
-                contributor.totalScore = (contributor.cultureScore + contributor.workScore) / 2;
-            }
-        });
+                // Populate the map with fetched or default values
+                contributorsMap.set(contributor.id, {
+                    id: contributor.id,
+                    username: contributor.username,
+                    profilePicture: contributor.profilePicture,
+                    cultureScore: compensation?.culturalScore || 0,
+                    workScore: compensation?.workScore || 0,
+                    totalScore: ((compensation?.culturalScore || 0) + (compensation?.workScore || 0)) / 2,
+                    teamPoints: compensation?.tp || 0,
+                    fiat: compensation?.fiat || 0,
+                    hasAssessed: false
+                });
+            })
+        );
 
         // Map submitted assessments
         const submittedAssessments: AssessmentResponseModel[] = round.assessments.map((assessment) => ({
             id: assessment.id,
             assessedId: assessment.assessed.id,
+            assessedName: assessment.assessed.username,
             assessorId: assessment.assessor.id,
+            assessorName: assessment.assessor.username,
             cultureScore: assessment.cultureScore,
             workScore: assessment.workScore,
             feedbackPositive: assessment.feedbackPositive,
@@ -380,6 +388,8 @@ export class RoundService {
         return ResponseModel.createSuccess(assessments.map((assessment) => ({
             id: assessment.id,
             assessedId: assessment.assessed.id,
+            assessedName: assessment.assessed.username,
+            assessorName: assessment.assessor.username,
             assessorId: assessment.assessor.id,
             cultureScore: assessment.cultureScore,
             workScore: assessment.workScore,

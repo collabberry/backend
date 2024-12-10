@@ -10,6 +10,9 @@ export class Round {
     @Column({ type: 'int' })
     roundNumber!: number;
 
+    @Column({ type: 'boolean', default: false})
+    isCompleted!: boolean;
+
     @Column({ type: 'timestamp' })
     startDate!: Date;
 

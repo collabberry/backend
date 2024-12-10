@@ -4,7 +4,7 @@ import { AppDataSource } from '../data-source.js';
 import { ResponseModel } from '../models/response_models/response_model.js';
 import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
 import { CreateOrgModel } from '../models/org/createOrg.model.js';
-import { Agreement, Invitation, Organization, Role, Round, User } from '../entities/index.js';
+import { Agreement, Invitation, Organization, Round, User } from '../entities/index.js';
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
 import {
@@ -252,7 +252,7 @@ export class OrganizationService {
 
         const rounds = await this.roundsRepository.find({
             where: { organization: { id: user.organization.id } },
-            relations: ['assessments', 'assessments.assessed']
+            relations: ['assessments', 'assessments.assessed', 'assessments.assessor']
         });
 
         const scores = rounds.map((r) => {

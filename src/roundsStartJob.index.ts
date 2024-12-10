@@ -15,22 +15,37 @@ try {
     AppDataSource.initialize().then(() => { console.log('App Data Source Connected'); });
 
     // --- Schedule tasks
-    const schedule = process.env.ROUNDS_START_GENERATION_SCHEDULE;
-    if (!schedule) {
+    const roundStartGenerationSchedule = process.env.ROUNDS_START_GENERATION_SCHEDULE;
+    if (!roundStartGenerationSchedule) {
         throw new Error('Start Round Generation schedule not defined.');
     }
 
     const roundService = container.get(RoundService);
 
-    cron.schedule(schedule, async () => {
+    cron.schedule(roundStartGenerationSchedule, async () => {
         try {
-            console.log('Creating rounds...');
             await roundService.createRounds();
-            console.log('Rounds created successfully!');
         } catch (error) {
             console.error('Error creating rounds:', error);
         }
     });
+
+
+       // --- Schedule tasks
+       const roundCompleteRounds = process.env.COMPLETE_ROUNDS_SCHEDULE;
+       if (!roundCompleteRounds) {
+           throw new Error('Complete Round Generation schedule not defined.');
+       }
+
+       cron.schedule(roundCompleteRounds, async () => {
+           try {
+               await roundService.completeRounds();
+           } catch (error) {
+               console.error('Error creating rounds:', error);
+           }
+       });
+
+
 } catch (error) {
     console.log('Error during service initialization!', error);
     process.exit(1);
