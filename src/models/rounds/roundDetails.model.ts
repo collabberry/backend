@@ -24,6 +24,7 @@ export interface ListRoundResponseModel {
 export interface ContributorRoundModel {
     id: string;
     username: string;
+    profilePicture: string | undefined;
     cultureScore: number;
     workScore: number;
     totalScore: number;

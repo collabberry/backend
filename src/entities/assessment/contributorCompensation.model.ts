@@ -15,25 +15,25 @@ export class ContributorRoundCompensation {
     @JoinColumn({ name: 'round_id' })
     round!: Relation<Round>;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'float' })
     culturalScore!: number;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'float' })
     workScore!: number;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'decimal' })
     fiat!: number;
 
     @Column({ type: 'int' })
     tp!: number;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'decimal' })
     agreement_fiat!: number;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'decimal' })
     agreement_mr!: number;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'decimal' })
     agreement_commitment!: number;
 
 
