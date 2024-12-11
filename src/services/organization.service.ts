@@ -134,10 +134,10 @@ export class OrganizationService {
         if (round) {
             console.log('Updating existing round');
             round.startDate = calculateAssessmentRoundStartTime(
-                org.compensationPeriod!,
+                +org.compensationPeriod!,
                 org.compensationStartDay!,
-                org.assessmentStartDelayInDays!);
-            round.endDate = calculateAssessmentRoundEndTime(round.startDate, org.assessmentDurationInDays!);
+                +org.assessmentStartDelayInDays!);
+            round.endDate = calculateAssessmentRoundEndTime(round.startDate, +org.assessmentDurationInDays!);
             await this.roundsRepository.save(round);
         } else {
             console.log('Creating new round');
