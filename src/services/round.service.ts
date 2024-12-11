@@ -44,10 +44,11 @@ export class RoundService {
 
         for (const org of orgs) {
 
+            console.log('org:', org);
             const startRoundDate = calculateAssessmentRoundStartTime(
-                org.compensationPeriod!,
+                +org.compensationPeriod!,
                 org.compensationStartDay!,
-                org.assessmentStartDelayInDays!
+                +org.assessmentStartDelayInDays!
             );
 
             if (startRoundDate >= beginningOfToday() && startRoundDate <= sevenDaysFromNow) {
