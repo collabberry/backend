@@ -23,7 +23,7 @@ services:
       PORT: 3000
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_PASS: password
+      # DB_PASS:  # Read from secrets
       DB_NAME: collabberry
       DB_UNAME: root
     depends_on:
@@ -38,7 +38,7 @@ services:
       COMPLETE_ROUNDS_SCHEDULE: "1 0 * * *"
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_PASS: password
+      # DB_PASS:  # Read from secrets
       DB_NAME: collabberry
       DB_UNAME: root
     command: ["node", "/app/dist/src/roundsStartJob.index.js"]
@@ -50,7 +50,7 @@ services:
     container_name: mysql
     image: mysql:latest
     environment:
-      MYSQL_ROOT_PASSWORD: password
+      # MYSQL_ROOT_PASSWORD:  # Read from secrets
       MYSQL_DATABASE: collabberry
     volumes:
       - ./mysql-data:/var/lib/mysql
