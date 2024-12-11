@@ -33,18 +33,34 @@ export class RoundService {
     /**
      * Start rounds for all organizations that have the next round date set to today and have rounds activated
      */
-    public async createRounds(): Promise<void> {
+    public async createRounds(orgId?: string): Promise<void> {
+
         console.log('[startRounds] Starting round creation...');
+        console.log(`[startRounds] orgId: ${orgId}...`);
         const sevenDaysFromNow = endOfToday();
         sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-        const orgs = await this.organizationRepository.find({
-            relations: ['rounds']
-        });
+        let orgs = [];
+        if (orgId !== undefined) {
+            const org = await this.organizationRepository.findOne({
+                where: { id: orgId },
+                relations: ['rounds']
+            });
+            if (!org)
+                return;
+            orgs.push(org);
+        } else {
+            orgs = await this.organizationRepository.find({
+                relations: ['rounds']
+            });
 
+        }
         for (const org of orgs) {
 
             console.log('org:', org);
+            if (!org.compensationPeriod)
+                continue;
+            
             const startRoundDate = calculateAssessmentRoundStartTime(
                 +org.compensationPeriod!,
                 org.compensationStartDay!,
