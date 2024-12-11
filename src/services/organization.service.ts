@@ -141,7 +141,7 @@ export class OrganizationService {
             await this.roundsRepository.save(round);
         } else {
             console.log('Creating new round');
-            await this.roundsService.createRounds();
+            await this.roundsService.createRounds(org.id);
         }
 
         return ResponseModel.createSuccess({ id: org.id });
