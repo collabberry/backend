@@ -456,3 +456,4 @@ export class RoundService {
             return ResponseModel.createError(new Error('Could not send an email'), 400);
         }
     }
+}
