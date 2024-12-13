@@ -46,8 +46,9 @@ export class RoundService {
                 where: { id: orgId },
                 relations: ['rounds']
             });
-            if (!org)
+            if (!org) {
                 return;
+            }
             orgs.push(org);
         } else {
             orgs = await this.organizationRepository.find({
@@ -58,8 +59,9 @@ export class RoundService {
         for (const org of orgs) {
 
             console.log('org:', org);
-            if (!org.compensationPeriod)
+            if (!org.compensationPeriod) {
                 continue;
+            }
 
             const startRoundDate = calculateAssessmentRoundStartTime(
                 +org.compensationPeriod!,
@@ -444,13 +446,13 @@ export class RoundService {
                 for (const contributor of contributors) {
                     const user = teamMembers.find(user => user.id === contributor);
                     if (user) {
-                        await this.emailService.sendAssessmentReminder(user.email, user.username, round.organization.name);
+                        await this.emailService.sendAssessmentReminder
+                            (user.email, user.username, round.organization.name);
                     }
                 }
             }
             return ResponseModel.createSuccess(null);
-        }
-        catch (error) {
+        } catch (error) {
             return ResponseModel.createError(new Error('Could not send an email'), 400);
         }
     }
