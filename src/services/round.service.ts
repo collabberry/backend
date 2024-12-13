@@ -60,7 +60,7 @@ export class RoundService {
             console.log('org:', org);
             if (!org.compensationPeriod)
                 continue;
-            
+
             const startRoundDate = calculateAssessmentRoundStartTime(
                 +org.compensationPeriod!,
                 org.compensationStartDay!,
@@ -432,20 +432,25 @@ export class RoundService {
             }
         });
 
-        if (remindAll) {
-            for (const contributor of teamMembers) {
-                this.emailService.sendAssessmentReminder
-                    (contributor.email, contributor.username, round.organization.name);
-                return ResponseModel.createSuccess(null);
-            }
-        } else if (contributors) {
-            for (const contributor of contributors) {
-                const user = teamMembers.find(user => user.id === contributor);
-                if (user) {
-                    this.emailService.sendAssessmentReminder(user.email, user.username, round.organization.name);
+        try {
+
+            if (remindAll) {
+                for (const contributor of teamMembers) {
+                    await this.emailService.sendAssessmentReminder
+                        (contributor.email, contributor.username, round.organization.name);
+                    return ResponseModel.createSuccess(null);
+                }
+            } else if (contributors) {
+                for (const contributor of contributors) {
+                    const user = teamMembers.find(user => user.id === contributor);
+                    if (user) {
+                        await this.emailService.sendAssessmentReminder(user.email, user.username, round.organization.name);
+                    }
                 }
             }
+            return ResponseModel.createSuccess(null);
         }
-        return ResponseModel.createSuccess(null);
+        catch (error) {
+            return ResponseModel.createError(new Error('Could not send an email'), 400);
+        }
     }
-}
