@@ -2,6 +2,7 @@ import { AssessmentResponseModel } from './assessmentResponse.model.js';
 
 export interface RoundResponseModel {
     id: string;
+    roundNumber: number;
     status: RoundStatus;
     startDate: Date;
     endDate: Date;
@@ -14,6 +15,7 @@ export interface RoundResponseModel {
 export interface ListRoundResponseModel {
     id: string;
     status: RoundStatus;
+    roundNumber: number;
     startDate: Date;
     endDate: Date;
     compensationCycleStartDate: Date;

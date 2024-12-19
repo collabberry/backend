@@ -274,6 +274,7 @@ export class RoundService {
         // Create the round response
         const roundResponse: RoundResponseModel = {
             id: round.id,
+            roundNumber: round.roundNumber,
             status: round.startDate > beginningOfToday()
                 ? RoundStatus.NotStarted
                 : round.endDate && round.endDate >= endOfToday()
@@ -313,6 +314,7 @@ export class RoundService {
         return ResponseModel.createSuccess(rounds.map((round) => {
             return {
                 id: round.id,
+                roundNumber: round.roundNumber,
                 status: round.startDate > beginningOfToday()
                     ? RoundStatus.NotStarted
                     : round.endDate && round.endDate >= endOfToday()
