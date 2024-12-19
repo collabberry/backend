@@ -31,19 +31,19 @@ try {
     });
 
 
-       // --- Schedule tasks
-       const roundCompleteRounds = process.env.COMPLETE_ROUNDS_SCHEDULE;
-       if (!roundCompleteRounds) {
-           throw new Error('Complete Round Generation schedule not defined.');
-       }
+    // --- Schedule tasks
+    const roundCompleteRounds = process.env.COMPLETE_ROUNDS_SCHEDULE;
+    if (!roundCompleteRounds) {
+        throw new Error('Complete Round Generation schedule not defined.');
+    }
 
-       cron.schedule(roundCompleteRounds, async () => {
-           try {
-               await roundService.completeRounds();
-           } catch (error) {
-               console.error('Error creating rounds:', error);
-           }
-       });
+    cron.schedule(roundCompleteRounds, async () => {
+        try {
+            await roundService.completeRounds();
+        } catch (error) {
+            console.error('Error creating rounds:', error);
+        }
+    });
 
 
 } catch (error) {
