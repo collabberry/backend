@@ -18,6 +18,9 @@ export class Organization {
     @Column({ type: 'int', default: 20 })
     par!: number;
 
+    @Column({ type: 'int', default: 0 })
+    totalFunds!: number;
+
     @Column('enum', { enum: CompensationPeriod, nullable: true })
     compensationPeriod!: CompensationPeriod | null;
 

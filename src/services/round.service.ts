@@ -1,5 +1,5 @@
 import { injectable } from 'inversify';
-import { Equal, IsNull, LessThan, LessThanOrEqual, MoreThan, MoreThanOrEqual, Not } from 'typeorm';
+import { IsNull, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
 import { EmailService } from './email.service.js';
 import { Assessment, ContributorRoundCompensation, Organization, Round, User } from '../entities/index.js';
 import { AppDataSource } from '../data-source.js';
@@ -51,14 +51,22 @@ export class RoundService {
             }
             orgs.push(org);
         } else {
-            orgs = await this.organizationRepository.find({
-                relations: ['rounds']
-            });
-
+            orgs = await this.organizationRepository
+                .createQueryBuilder('organization')
+                .leftJoin('organization.rounds', 'round')
+                .where(qb => {
+                    const subQuery = qb.subQuery()
+                        .select('1')
+                        .from('rounds', 'r')
+                        .where('r.organization_id = organization.id')
+                        .andWhere('r.isCompleted = false')
+                        .getQuery();
+                    return `NOT EXISTS (${subQuery})`;
+                })
+                .getMany();
         }
         for (const org of orgs) {
 
-            console.log('org:', org);
             if (!org.compensationPeriod) {
                 continue;
             }
@@ -161,6 +169,7 @@ export class RoundService {
                 contributorScores.workTotal += assessment.workScore ? assessment.workScore : 0;
                 contributorScores.count += (assessment.cultureScore || assessment.workScore) ? 1 : 0;
             }
+            let totalFiatSpent = 0;
 
             // Calculate average scores for each contributor
             for (const [contributorId, scores] of scoresByContributor) {
@@ -187,13 +196,21 @@ export class RoundService {
 
                 comp.tp = Number(tpValue.toFixed(2));
                 comp.fiat = Number(fiatValue.toFixed(2));
+                totalFiatSpent += comp.fiat;
 
                 await AppDataSource.manager.save(comp);
 
             }
 
+            const org = await this.organizationRepository.findOne({
+                where: { id: round.organization.id }
+            });
             round.isCompleted = true;
+            if (org!.totalFunds > 0) {
+                org!.totalFunds -= totalFiatSpent;
+            }
             await AppDataSource.manager.save(round);
+            await AppDataSource.manager.save(org);
         }
 
         console.log('[completeRounds] Round completion completed.');
@@ -210,7 +227,7 @@ export class RoundService {
         });
 
         if (!currentRound) {
-            return ResponseModel.createError(new Error('No active round found for the organization'), 400);
+            return ResponseModel.createSuccess(null);
         }
 
         return this.getRoundById(currentRound.id);
@@ -240,8 +257,6 @@ export class RoundService {
                         contributor: { id: contributor.id }
                     }
                 });
-
-                console.log(compensation?.culturalScore, typeof (compensation?.culturalScore));
 
                 // Populate the map with fetched or default values
                 contributorsMap.set(contributor.id, {

@@ -28,8 +28,6 @@ export function calculateAssessmentRoundStartTime(
         compCycleStartDate.getUTCDate(),
         0, 0, 0, 0
     ));
-    console.log('compensationCyclePeriod:', compensationCyclePeriod);
-    console.log('+compensationCyclePeriod:', +compensationCyclePeriod);
     switch ((+compensationCyclePeriod) as CompensationPeriod) {
         case CompensationPeriod.Weekly:
             // Move startTime one week forward
@@ -54,7 +52,6 @@ export function calculateAssessmentRoundStartTime(
     }
 
     if (startTime < beginningOfToday()) {
-        console.log('startTime < now');
         return beginningOfToday();
     }
 
