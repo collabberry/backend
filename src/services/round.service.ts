@@ -169,6 +169,7 @@ export class RoundService {
                 contributorScores.workTotal += assessment.workScore ? assessment.workScore : 0;
                 contributorScores.count += (assessment.cultureScore || assessment.workScore) ? 1 : 0;
             }
+            let totalFiatSpent = 0;
 
             // Calculate average scores for each contributor
             for (const [contributorId, scores] of scoresByContributor) {
@@ -195,13 +196,21 @@ export class RoundService {
 
                 comp.tp = Number(tpValue.toFixed(2));
                 comp.fiat = Number(fiatValue.toFixed(2));
+                totalFiatSpent += comp.fiat;
 
                 await AppDataSource.manager.save(comp);
 
             }
 
+            const org = await this.organizationRepository.findOne({
+                where: { id: round.organization.id }
+            });
             round.isCompleted = true;
+            if (org!.totalFunds > 0) {
+                org!.totalFunds -= totalFiatSpent;
+            }
             await AppDataSource.manager.save(round);
+            await AppDataSource.manager.save(org);
         }
 
         console.log('[completeRounds] Round completion completed.');
@@ -218,7 +227,7 @@ export class RoundService {
         });
 
         if (!currentRound) {
-            return ResponseModel.createError(new Error('No active round found for the organization'), 400);
+            return ResponseModel.createSuccess(null);
         }
 
         return this.getRoundById(currentRound.id);

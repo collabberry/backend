@@ -4,7 +4,7 @@ import { AppDataSource } from '../data-source.js';
 import { ResponseModel } from '../models/response_models/response_model.js';
 import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
 import { CreateOrgModel } from '../models/org/createOrg.model.js';
-import { Agreement, Invitation, Organization, Round, User } from '../entities/index.js';
+import { Agreement, ContributorRoundCompensation, Invitation, Organization, Round, User } from '../entities/index.js';
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
 import {
@@ -123,6 +123,7 @@ export class OrganizationService {
         org.compensationStartDay = orgModel.compensationStartDay;
         org.assessmentDurationInDays = orgModel.assessmentDurationInDays;
         org.assessmentStartDelayInDays = orgModel.assessmentStartDelayInDays;
+        org.totalFunds = orgModel.totalFunds ?? 0;
         await this.organizationRepository.save(org);
 
         const rounds = await this.roundsRepository.find({
@@ -130,18 +131,22 @@ export class OrganizationService {
                 organization: { id: org.id }
             }
         });
-        const round = rounds.find((r) => r.startDate >= beginningOfToday());
-        if (round) {
-            console.log('Updating existing round');
-            round.startDate = calculateAssessmentRoundStartTime(
-                +org.compensationPeriod!,
-                org.compensationStartDay!,
-                +org.assessmentStartDelayInDays!);
-            round.endDate = calculateAssessmentRoundEndTime(round.startDate, +org.assessmentDurationInDays!);
-            await this.roundsRepository.save(round);
-        } else {
-            console.log('Creating new round');
-            await this.roundsService.createRounds(org.id);
+        const ongoingRound = rounds.find((r) => r.isCompleted === false && r.startDate <= beginningOfToday());
+        if (!ongoingRound) {
+            const futureRound = rounds.find((r) => r.startDate >= beginningOfToday());
+            if (futureRound) {
+                console.log('Updating existing round');
+                futureRound.startDate = calculateAssessmentRoundStartTime(
+                    +org.compensationPeriod!,
+                    org.compensationStartDay!,
+                    +org.assessmentStartDelayInDays!);
+                futureRound.endDate =
+                    calculateAssessmentRoundEndTime(futureRound.startDate, +org.assessmentDurationInDays!);
+                await this.roundsRepository.save(futureRound);
+            } else {
+                console.log('Creating new round');
+                await this.roundsService.createRounds(org.id);
+            }
         }
 
         return ResponseModel.createSuccess({ id: org.id });
@@ -158,6 +163,11 @@ export class OrganizationService {
             return ResponseModel.createError(new Error('Organization not found!'), 404);
         }
 
+        const allCompensation = await AppDataSource.manager.find(ContributorRoundCompensation, {
+            where: {round: { organization: { id: org.id } }}
+        });
+
+
         const orgModel: OrgDetailsModel = {
             id: org.id,
             name: org.name,
@@ -167,6 +177,9 @@ export class OrganizationService {
             compensationStartDay: org.compensationStartDay,
             assessmentDurationInDays: org.assessmentDurationInDays,
             assessmentStartDelayInDays: org.assessmentStartDelayInDays,
+            totalFunds: org.totalFunds,
+            totalDistributedFiat: allCompensation.reduce((acc, c) => acc + +c.fiat, 0),
+            totalDistributedTP: allCompensation.reduce((acc, c) => acc + +c.tp, 0),
             contributors: org.contributors?.map((u) => ({
                 id: u.id,
                 walletAddress: u.address,

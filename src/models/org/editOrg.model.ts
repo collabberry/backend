@@ -11,10 +11,13 @@ export interface OrgModel {
     name: string;
     logo?: string;
     par: number;
+    totalFunds: number | null;
     compensationPeriod: CompensationPeriod | null;
     compensationStartDay: Date | null;
     assessmentDurationInDays: number | null;
     assessmentStartDelayInDays: number | null;
+    totalDistributedTP: number;
+    totalDistributedFiat: number;
 }
 
 export const fullOrganizationScheme = Joi.object({
@@ -25,5 +28,6 @@ export const fullOrganizationScheme = Joi.object({
     compensationPeriod: Joi.number().valid(...Object.values(CompensationPeriod)).required(),
     compensationStartDay: Joi.date().optional(),
     assessmentDurationInDays: Joi.number().optional(),
-    assessmentStartDelayInDays: Joi.number().optional()
+    assessmentStartDelayInDays: Joi.number().optional(),
+    totalFunds: Joi.number().optional()
 });
