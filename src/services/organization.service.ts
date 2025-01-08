@@ -56,6 +56,7 @@ export class OrganizationService {
         const organization = new Organization();
         organization.name = orgModel.name;
         organization.logo = orgModel.logo;
+        organization.teamPointsContractAddress = orgModel.teamPointsContractAddress;
         organization.contributors = [creator];
 
         await this.organizationRepository.save(organization);
@@ -177,6 +178,7 @@ export class OrganizationService {
             compensationStartDay: org.compensationStartDay,
             assessmentDurationInDays: org.assessmentDurationInDays,
             assessmentStartDelayInDays: org.assessmentStartDelayInDays,
+            teamPointsContractAddress: org.teamPointsContractAddress,
             totalFunds: org.totalFunds,
             totalDistributedFiat: allCompensation.reduce((acc, c) => acc + +c.fiat, 0),
             totalDistributedTP: allCompensation.reduce((acc, c) => acc + +c.tp, 0),
