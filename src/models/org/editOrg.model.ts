@@ -12,6 +12,7 @@ export interface OrgModel {
     logo?: string;
     par: number;
     totalFunds: number | null;
+    teamPointsContractAddress: string;
     compensationPeriod: CompensationPeriod | null;
     compensationStartDay: Date | null;
     assessmentDurationInDays: number | null;

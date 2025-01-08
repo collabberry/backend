@@ -1,7 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany, Relation } from 'typeorm';
 import { CompensationPeriod } from './cycle.enum.js';
 import { Round } from '../assessment/round.model.js';
-import { Agreement } from './agreement.model.js';
 import { User } from '../users/user.model.js';
 
 @Entity('organizations')
@@ -9,8 +8,11 @@ export class Organization {
     @PrimaryGeneratedColumn('uuid')
     id!: string;
 
-    @Column({ type: 'varchar', length: 255, unique: true })
+    @Column({ type: 'varchar', length: 255 })
     name!: string;
+
+    @Column({ type: 'varchar', length: 255, unique: true })
+    teamPointsContractAddress!: string;
 
     @Column({ type: 'varchar', nullable: true })
     logo?: string;
@@ -38,5 +40,4 @@ export class Organization {
 
     @OneToMany(() => User, (user) => user.organization, { cascade: false })
     contributors?: Relation<User[]>;
-
 }
