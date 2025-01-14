@@ -7,7 +7,7 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    environment: dev-aws-env
+    environment: common-env
     steps:
     - uses: actions/checkout@v4
     
@@ -38,14 +38,14 @@ jobs:
     
     - name: Copy the compose file to EC2
       run: |
-        scp -i ~/.ssh/id_rsa docker-compose.ci-dev.yml ${{ vars.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/admin/deployment/docker-compose.yml
+        scp -i ~/.ssh/id_rsa docker-compose.ci-dev.yml ${{ vars.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/home/admin/deployment/docker-compose.be.yml
 
     - name: Deploy to EC2
       run: |
         ssh -i ~/.ssh/id_rsa ${{ vars.EC2_USERNAME }}@${{ secrets.EC2_HOST }} '
           cd /home/admin/deployment/ &&
-          docker compose pull &&
-          docker compose up -d
+          docker compose -f docker-compose.be.yml pull &&
+          docker compose -f docker-compose.be.yml up -d
         '
 
     - name: Clean up SSH key

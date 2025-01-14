@@ -1,0 +1,62 @@
+x-common: &common
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "500m"
+      max-file: "5"
+      compress: "true"
+  env_file:
+    - .compose.secrets.env
+  restart: unless-stopped
+  networks:
+    - collabberry-backend
+
+services:
+  backend:
+    <<: *common
+    container_name: backend
+    build: .
+    image: collabberry/backend-app-demo-01:latest
+    environment:
+      JWT_SECRET: secret
+      INVITATION_URL: "http://localhost:3000/invitation"
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      # DB_PASS:  # Read from secrets
+      DB_NAME: collabberry
+      DB_UNAME: root
+    depends_on:
+      - mysql
+  
+  scheduled-jobs:
+    <<: *common
+    container_name: scheduled-jobs
+    image: collabberry/backend-app-demo-01:latest
+    environment:
+      ROUNDS_START_GENERATION_SCHEDULE: "* * * * *"
+      COMPLETE_ROUNDS_SCHEDULE: "* * * * *"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      # DB_PASS:  # Read from secrets
+      DB_NAME: collabberry
+      DB_UNAME: root
+    command: ["node", "/app/dist/src/roundsStartJob.index.js"]
+    depends_on:
+      - mysql
+
+  mysql:
+    <<: *common
+    container_name: mysql
+    image: mysql:latest
+    environment:
+      # MYSQL_ROOT_PASSWORD:  # Read from secrets
+      MYSQL_DATABASE: collabberry
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    ports:
+      - 3306:3306
+
+networks:
+  collabberry-backend:
+    driver: bridge
