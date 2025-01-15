@@ -473,4 +473,19 @@ export class RoundService {
             return ResponseModel.createError(new Error('Could not send an email'), 400);
         }
     }
+
+    public async addTokenMintTx(roundId: string, txHash: string): Promise<ResponseModel<null>> {
+        const round = await this.roundsRepository.findOne({
+            where: { id: roundId }
+        });
+
+        if (!round) {
+            return ResponseModel.createError(new Error('Round not found'), 404);
+        }
+
+        round.txHash = txHash;
+        await this.roundsRepository.save(round);
+
+        return ResponseModel.createSuccess(null);
+    }
 }
