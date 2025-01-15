@@ -20,7 +20,7 @@ export class Round {
     endDate!: Date;
 
     @Column({ type: 'varchar', nullable: true })
-    txHash!: string;
+    txHash!: string | null;
 
     @Column({ type: 'timestamp', nullable: false })
     compensationCycleStartDate!: Date;

@@ -6,6 +6,7 @@ export interface RoundResponseModel {
     status: RoundStatus;
     startDate: Date;
     endDate: Date;
+    txHash?: string | null;
     contributors: ContributorRoundModel[];
     submittedAssessments: AssessmentResponseModel[];
     compensationCycleStartDate: Date;

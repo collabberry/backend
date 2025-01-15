@@ -297,6 +297,7 @@ export class RoundService {
                     : RoundStatus.Completed,
             startDate: round.startDate,
             endDate: round.endDate!,
+            txHash: round.txHash,
             compensationCycleStartDate: round.compensationCycleStartDate,
             compensationCycleEndDate: round.compensationCycleEndDate,
             contributors: Array.from(contributorsMap.values()),
