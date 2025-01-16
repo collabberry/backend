@@ -1,5 +1,3 @@
-import { Role } from '../../entities/index.js';
-
 export interface UserResponseModel {
     id: string;
     walletAddress?: string;
@@ -7,6 +5,7 @@ export interface UserResponseModel {
     email: string;
     profilePicture?: string;
     isAdmin: boolean;
+    totalFiat: number;
     organization?: OrganizationListModel | null;
     agreement?: AgreementModel | null;
 }
