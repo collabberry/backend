@@ -9,7 +9,13 @@ import { SiweMessage } from 'siwe';
 import { UserResponseModel } from '../models/user/userDetails.model.js';
 import { EmailService } from './email.service.js';
 import { AppDataSource } from '../data-source.js';
-import { Invitation, Organization, User, WalletNonce } from '../entities/index.js';
+import {
+    ContributorRoundCompensation,
+    Invitation,
+    Organization,
+    User,
+    WalletNonce
+} from '../entities/index.js';
 
 dotenv.config();  // Load the environment variables from .env
 
@@ -110,6 +116,13 @@ export class UserService {
             return ResponseModel.createError(new Error('User not found'), 404);
         }
 
+        const contributionsRepo = AppDataSource.getRepository(ContributorRoundCompensation);
+        const contributions = await contributionsRepo.find({ where: { contributor: { id: user.id } } });
+        let totalFiat = 0;
+        if (contributions.length > 0) {
+            totalFiat = contributions.reduce((acc, curr) => acc + curr.fiat, 0);
+        }
+
         const responseModel: UserResponseModel = {
             id: user.id,
             walletAddress: user.address,
@@ -117,6 +130,7 @@ export class UserService {
             email: user.email,
             profilePicture: user.profilePicture,
             isAdmin: user.isAdmin,
+            totalFiat: totalFiat,
             organization: user.organization && {
                 id: user.organization!.id,
                 logo: user.organization!.logo,
