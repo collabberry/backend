@@ -118,4 +118,28 @@ export class RoundsController {
             res.status(500).send('Internal Server Error');
         }
     }
+
+
+    public addTokenMintTx = async (req: any, res: Response) => {
+        try {
+            const walletAddress = req.user.walletAddress;
+            const responseModel = await this.userService.getByWalletAddress(walletAddress);
+            if (!responseModel.data?.isAdmin) {
+                return res.status(401).json({ message: 'User is not an admin' });
+            }
+            if (!responseModel.data?.organization?.id) {
+                return res.status(401).json({ message: 'User does not have an org' });
+            }
+
+            const txId = req.body.txId;
+            if (!txId) {
+                return res.status(400).json({ message: 'txId is required' });
+            }
+            const result = await this.roundService.addTokenMintTx(req.params.roundId, txId);
+            res.status(result.statusCode).json(handleResponse(result));
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
 }

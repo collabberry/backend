@@ -20,6 +20,7 @@ export class RoundsRouter {
     this._router.post('/assess', jwtMiddleware, this.roundsController.addAssessment);
     this._router.get('/:roundId/assessments', jwtMiddleware, this.roundsController.getAssessments);
     this._router.post('/:roundId/assessments/remind', jwtMiddleware, this.roundsController.remind);
+    this._router.post('/:roundId/txHash', jwtMiddleware, this.roundsController.addTokenMintTx);
   }
 
   public get router(): Router {

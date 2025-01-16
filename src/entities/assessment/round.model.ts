@@ -19,6 +19,9 @@ export class Round {
     @Column({ type: 'timestamp' })
     endDate!: Date;
 
+    @Column({ type: 'varchar', nullable: true })
+    txHash!: string | null;
+
     @Column({ type: 'timestamp', nullable: false })
     compensationCycleStartDate!: Date;
 
