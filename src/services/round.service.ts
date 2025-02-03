@@ -121,13 +121,13 @@ export class RoundService {
     public async completeRounds(): Promise<void> {
 
         console.log('[completeRounds] Starting round completion...');
-        const today = endOfToday();
+        const nowUTC = new Date();
 
         // Fetch rounds ending today, including required relations
         const rounds = await this.roundsRepository.find({
             where: {
                 isCompleted: false,
-                endDate: LessThanOrEqual(today)
+                endDate: LessThanOrEqual(nowUTC)
             },
             relations: ['assessments', 'assessments.assessed.agreement', 'organization']
         });
@@ -250,6 +250,7 @@ export class RoundService {
         // Add all contributors to the map with default values
         await Promise.all(
             round.organization.contributors!.map(async (contributor) => {
+
                 // Fetch the compensation data for the current contributor
                 const compensation = await AppDataSource.manager.findOne(ContributorRoundCompensation, {
                     where: {
@@ -257,19 +258,30 @@ export class RoundService {
                         contributor: { id: contributor.id }
                     }
                 });
+                if (!compensation && round.isCompleted) {
+                    return;
+                }
+
+                const assessments = await AppDataSource.manager.find(Assessment, {
+                    where: {
+                        round: { id: round.id }
+                    },
+                    relations: ['assessor']
+                });
 
                 // Populate the map with fetched or default values
                 contributorsMap.set(contributor.id, {
                     id: contributor.id,
                     username: contributor.username,
                     profilePicture: contributor.profilePicture,
-                    cultureScore: compensation?.culturalScore || 0,
-                    workScore: compensation?.workScore || 0,
-                    totalScore: ((compensation?.culturalScore || 0) + (compensation?.workScore || 0)) / 2,
-                    teamPoints: compensation?.tp || 0,
-                    fiat: compensation?.fiat || 0,
-                    hasAssessed: false
+                    cultureScore: compensation?.culturalScore ?? 0,
+                    workScore: compensation?.workScore ?? 0,
+                    totalScore: ((compensation?.culturalScore ?? 0) + (compensation?.workScore ?? 0)) / 2,
+                    teamPoints: compensation?.tp ?? 0,
+                    fiat: compensation?.fiat ?? 0,
+                    hasAssessed: assessments.some(x => x.assessor.id === contributor.id)
                 });
+
             })
         );
 
@@ -314,13 +326,17 @@ export class RoundService {
             return ResponseModel.createError(new Error('Round not found'), 404);
         }
 
+        if (round.isCompleted) {
+            return ResponseModel.createError(new Error('Round already completed'), 400);
+        }
+
         round.startDate = roundModel.startDate;
         round.endDate = roundModel.endDate;
         await this.roundsRepository.save(round);
 
-
         return ResponseModel.createSuccess(null);
     }
+
     public async getRounds(organizationId: string): Promise<ResponseModel<ListRoundResponseModel[] | null>> {
         const rounds = await this.roundsRepository.find({
             where: { organization: { id: organizationId } },
