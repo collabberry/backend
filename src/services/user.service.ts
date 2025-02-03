@@ -130,7 +130,7 @@ export class UserService {
             email: user.email,
             profilePicture: user.profilePicture,
             isAdmin: user.isAdmin,
-            totalFiat: totalFiat,
+            totalFiat,
             organization: user.organization && {
                 id: user.organization!.id,
                 logo: user.organization!.logo,

@@ -124,6 +124,27 @@ export class OrganizationController {
         }
     }
 
+
+    public editAgreement = async (req: any, res: Response) => {
+        try {
+            const agreementId: string = req.params.agreementId;
+            const agreement: CreateAgreementModel = req.body;
+            const isValid = createAgreementSchema.validate(agreement);
+            if (isValid.error) {
+                return res.status(400).json({ message: isValid.error.message });
+            }
+            const createdResponseModel = await this.organizationService.editAgreement(
+                req.user.walletAddress,
+                agreementId,
+                agreement);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
     public getContribAgreement = async (req: any, res: Response) => {
         try {
             const contributorId = req.params.contributorId;
