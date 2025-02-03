@@ -62,7 +62,12 @@ export function calculateAssessmentRoundStartTime(
 
 // Compensation Periods
 export function calculateNextCompensationPeriodStartDay(compensationStartDay: Date, cycle: CompensationPeriod): Date {
-    const nextStartDay = new Date(compensationStartDay);
+    const nextStartDay = new Date(Date.UTC(
+        compensationStartDay.getUTCFullYear(),
+        compensationStartDay.getUTCMonth(),
+        compensationStartDay.getUTCDate(),
+        0, 0, 0, 0
+    ));
 
     switch (cycle) {
         case CompensationPeriod.Weekly:

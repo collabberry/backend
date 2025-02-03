@@ -165,7 +165,7 @@ export class OrganizationService {
         }
 
         const allCompensation = await AppDataSource.manager.find(ContributorRoundCompensation, {
-            where: {round: { organization: { id: org.id } }}
+            where: { round: { organization: { id: org.id } } }
         });
 
 
@@ -181,7 +181,6 @@ export class OrganizationService {
             teamPointsContractAddress: org.teamPointsContractAddress,
             totalFunds: org.totalFunds,
             totalDistributedFiat: allCompensation.reduce((acc, c) => acc + +c.fiat, 0),
-            totalDistributedTP: allCompensation.reduce((acc, c) => acc + +c.tp, 0),
             contributors: org.contributors?.map((u) => ({
                 id: u.id,
                 walletAddress: u.address,
@@ -241,6 +240,40 @@ export class OrganizationService {
         await this.userRepository.save(agreementUser);
 
         return ResponseModel.createSuccess({ id: newAgreement.id });
+    }
+
+
+
+    /**
+     * Edits an agreement for a user in the organization
+     */
+    public async editAgreement(walletAddress: string, agreeementId: string, agreementData: CreateAgreementModel)
+        : Promise<ResponseModel<CreatedResponseModel | null>> {
+
+        const admin = await this.userRepository.findOne({
+            where: { address: walletAddress.toLowerCase() },
+            relations: ['organization']
+        });
+        if (!admin || !admin.organization || !admin.isAdmin) {
+            return ResponseModel.createError(new Error('Only organization admins can add agreements.'), 401);
+        }
+
+        const agreement = await this.agreementRepository.findOne({
+            where: { id: agreeementId }
+        });
+        if (!agreement) {
+            return ResponseModel.createError(new Error('Agreement not found!'), 404);
+        }
+
+        agreement.roleName = agreementData.roleName;
+        agreement.responsibilities = agreementData.responsibilities;
+        agreement.marketRate = agreementData.marketRate;
+        agreement.fiatRequested = agreementData.fiatRequested;
+        agreement.commitment = agreementData.commitment;
+
+        await this.agreementRepository.save(agreement);
+
+        return ResponseModel.createSuccess({ id: agreement.id });
     }
 
     /**

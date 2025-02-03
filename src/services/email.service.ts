@@ -44,7 +44,7 @@ export class EmailService {
             path.join(__dirname, '..', 'emailTemplates', 'registrationEmail.html'),
             {
                 contributor_name: `${username}`,
-                account_link: 'https://app.collabberry.xyz'
+                account_link: 'https://beta.collabberry.xyz'
             }
         );
     }
@@ -92,26 +92,13 @@ export class EmailService {
         };
 
         // Send the email
-        // this.transporter.sendMail(mailOptions, (error: any, info: any) => {
-        //     if (error) {
-        //         console.error('Error sending email:', error);
-        //     } else {
-        //         console.log('Email sent:', info.response);
-        //     }
-        // });
+        this.transporter.sendMail(mailOptions, (error: any, info: any) => {
+            if (error) {
+                console.error('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
     }
-
-
-
-    // public async sendRegistration(userId: string): Promise<void> {
-    //     await this.sendEmail(
-    //         msg.email,
-    //         'Reset password request - AgileChain',
-    //         path.join(__dirname, '..', 'templates', 'passwordResetEmail.html'),
-    //         {
-    //             resetCode: `${msg.resetCode}`
-    //         }
-    //     );
-    // }
 
 }
