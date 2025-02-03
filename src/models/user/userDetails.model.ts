@@ -11,6 +11,7 @@ export interface UserResponseModel {
 }
 
 export interface AgreementModel {
+    id: string;
     roleName: string;
     responsibilities: string;
     marketRate: number;

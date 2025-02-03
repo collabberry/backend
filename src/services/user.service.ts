@@ -137,6 +137,7 @@ export class UserService {
                 name: user.organization!.name
             },
             agreement: user.agreement && {
+                id: user.agreement.id,
                 marketRate: user.agreement.marketRate,
                 roleName: user.agreement.roleName,
                 responsibilities: user.agreement.responsibilities,
