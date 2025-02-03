@@ -251,8 +251,6 @@ export class RoundService {
         await Promise.all(
             round.organization.contributors!.map(async (contributor) => {
 
-                console.log(`Processing contributor: ${contributor.id}, ${contributor.username}`);
-
                 // Fetch the compensation data for the current contributor
                 const compensation = await AppDataSource.manager.findOne(ContributorRoundCompensation, {
                     where: {
@@ -264,16 +262,12 @@ export class RoundService {
                     return;
                 }
 
-                console.log('Compensation:', compensation);
-
                 const assessments = await AppDataSource.manager.find(Assessment, {
                     where: {
                         round: { id: round.id }
                     },
                     relations: ['assessor']
                 });
-
-                console.log('Assessments:', assessments);
 
                 // Populate the map with fetched or default values
                 contributorsMap.set(contributor.id, {
@@ -291,8 +285,6 @@ export class RoundService {
             })
         );
 
-        console.log('Contributors:', round.organization.contributors);
-        console.log('contributorsMap:', contributorsMap);
         // Map submitted assessments
         const submittedAssessments: AssessmentResponseModel[] = round.assessments.map((assessment) => ({
             id: assessment.id,
