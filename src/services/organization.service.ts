@@ -187,6 +187,7 @@ export class OrganizationService {
                 username: u.username,
                 profilePicture: u.profilePicture,
                 agreement: u.agreement && {
+                    id: u.agreement.id,
                     marketRate: u.agreement.marketRate,
                     roleName: u.agreement.roleName,
                     responsibilities: u.agreement.responsibilities,
