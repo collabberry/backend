@@ -17,7 +17,6 @@ export interface OrgModel {
     compensationStartDay: Date | null;
     assessmentDurationInDays: number | null;
     assessmentStartDelayInDays: number | null;
-    totalDistributedTP: number;
     totalDistributedFiat: number;
 }
 
