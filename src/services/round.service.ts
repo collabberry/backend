@@ -34,9 +34,6 @@ export class RoundService {
      * Start rounds for all organizations that have the next round date set to today and have rounds activated
      */
     public async createRounds(orgId?: string): Promise<void> {
-
-        console.log('[startRounds] Starting round creation...');
-        console.log(`[startRounds] orgId: ${orgId}...`);
         const sevenDaysFromNow = endOfToday();
         sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
@@ -66,6 +63,7 @@ export class RoundService {
                 .getMany();
         }
         for (const org of orgs) {
+            console.log(`[${new Date()}][createRounds] Creating Round for : ${org.id}`);
 
             if (!org.compensationPeriod) {
                 continue;
@@ -95,7 +93,7 @@ export class RoundService {
                 });
 
                 await this.roundsRepository.save(round);
-                console.log('[startRounds] Round created:', round.id);
+                console.log(`[${new Date()}][createRounds] Round Created : ${round.id}`);
 
                 const o = await this.organizationRepository.findOne({
                     where: { id: org.id }
@@ -114,13 +112,9 @@ export class RoundService {
                 }
             }
         }
-
-        console.log('[startRounds] Round creation completed.');
     }
 
     public async completeRounds(): Promise<void> {
-
-        console.log('[completeRounds] Starting round completion...');
         const nowUTC = new Date();
 
         // Fetch rounds ending today, including required relations
@@ -134,7 +128,7 @@ export class RoundService {
 
 
         for (const round of rounds) {
-            console.log('[completeRounds] Completing round:', round.id);
+            console.log(`[${new Date()}][completeRounds] Completing round: ${round.id}`);
 
             const par = round.organization.par;
             // Initialize a map to group scores by contributors (assessed)
@@ -213,7 +207,6 @@ export class RoundService {
             await AppDataSource.manager.save(org);
         }
 
-        console.log('[completeRounds] Round completion completed.');
     }
 
     public async getCurrentRound(organizationId: string): Promise<ResponseModel<RoundResponseModel | null>> {
@@ -298,13 +291,15 @@ export class RoundService {
             feedbackNegative: assessment.feedbackNegative
         }));
 
+        const nowUTC = new Date();
+
         // Create the round response
         const roundResponse: RoundResponseModel = {
             id: round.id,
             roundNumber: round.roundNumber,
-            status: round.startDate > beginningOfToday()
+            status: round.startDate > nowUTC
                 ? RoundStatus.NotStarted
-                : round.endDate && round.endDate >= endOfToday()
+                : round.endDate && round.endDate >= nowUTC
                     ? RoundStatus.InProgress
                     : RoundStatus.Completed,
             startDate: round.startDate,
@@ -343,13 +338,15 @@ export class RoundService {
             relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
 
+        const nowUTC = new Date();
+
         return ResponseModel.createSuccess(rounds.map((round) => {
             return {
                 id: round.id,
                 roundNumber: round.roundNumber,
-                status: round.startDate > beginningOfToday()
+                status: round.startDate > nowUTC
                     ? RoundStatus.NotStarted
-                    : round.endDate && round.endDate >= endOfToday()
+                    : round.endDate && round.endDate >= nowUTC
                         ? RoundStatus.InProgress
                         : RoundStatus.Completed,
                 startDate: round.startDate,
@@ -358,6 +355,7 @@ export class RoundService {
                 endDate: round.endDate!
             };
         }));
+
     }
     public async addAssessment(walletAddress: string, assessmentData: CreateAssessmentModel):
         Promise<ResponseModel<CreatedResponseModel | null>> {
