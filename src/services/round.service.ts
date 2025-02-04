@@ -217,11 +217,12 @@ export class RoundService {
     }
 
     public async getCurrentRound(organizationId: string): Promise<ResponseModel<RoundResponseModel | null>> {
+        const utcNow = new Date();
         const currentRound = await this.roundsRepository.findOne({
             where: {
                 organization: { id: organizationId },
-                startDate: LessThanOrEqual(beginningOfToday()),
-                endDate: MoreThanOrEqual(endOfToday())
+                startDate: LessThanOrEqual(utcNow),
+                endDate: MoreThanOrEqual(utcNow)
             },
             relations: ['assessments', 'assessments.assessor', 'assessments.assessed']
         });
