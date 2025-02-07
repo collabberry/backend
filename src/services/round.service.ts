@@ -135,7 +135,8 @@ export class RoundService {
             const scoresByContributor = new Map<string, {
                 cultureTotal: number,
                 workTotal: number,
-                count: number,
+                cultureCount: number,
+                workCount: number,
                 commitment: number,
                 marketRate: number,
                 fiat: number
@@ -149,7 +150,8 @@ export class RoundService {
                     scoresByContributor.set(assessedId, {
                         cultureTotal: 0,
                         workTotal: 0,
-                        count: 0,
+                        cultureCount: 0,
+                        workCount: 0,
                         marketRate: assessment.assessed.agreement!.marketRate,
                         commitment: assessment.assessed.agreement!.commitment,
                         fiat: assessment.assessed.agreement!.fiatRequested
@@ -158,11 +160,22 @@ export class RoundService {
 
                 const contributorScores = scoresByContributor.get(assessedId)!;
 
-                // Add valid scores and increment count if any score is valid
-                contributorScores.cultureTotal += assessment.cultureScore ? assessment.cultureScore : 0;
-                contributorScores.workTotal += assessment.workScore ? assessment.workScore : 0;
-                contributorScores.count += (assessment.cultureScore || assessment.workScore) ? 1 : 0;
+                // Add valid scores and increment separate counts
+                if (assessment.cultureScore !== null &&
+                    assessment.cultureScore !== 0 &&
+                    assessment.cultureScore !== undefined) {
+                    contributorScores.cultureTotal += assessment.cultureScore;
+                    contributorScores.cultureCount += 1;
+                }
+
+                if (assessment.workScore !== null &&
+                    assessment.workScore !== 0 &&
+                    assessment.workScore !== undefined) {
+                    contributorScores.workTotal += assessment.workScore;
+                    contributorScores.workCount += 1;
+                }
             }
+
             let totalFiatSpent = 0;
 
             // Calculate average scores for each contributor
@@ -170,12 +183,20 @@ export class RoundService {
                 const comp = new ContributorRoundCompensation();
                 comp.round = round;
                 comp.contributor = { id: contributorId } as User;
-                comp.culturalScore = scores.cultureTotal / scores.count;
-                comp.workScore = scores.workTotal / scores.count;
+
+                // Calculate separate averages, avoiding division by zero
+                comp.culturalScore = scores.cultureCount > 0 ? scores.cultureTotal / scores.cultureCount : 0;
+                comp.workScore = scores.workCount > 0 ? scores.workTotal / scores.workCount : 0;
+
                 comp.agreement_commitment = scores.commitment;
                 comp.agreement_mr = scores.marketRate;
                 comp.agreement_fiat = scores.fiat;
-                const finalScore = (comp.culturalScore + comp.workScore) / 2;
+
+                // Calculate final score by averaging only valid scores
+                const validScores = [comp.culturalScore, comp.workScore].filter(score => score !== null);
+                const finalScore = validScores.length > 0 ?
+                    validScores.reduce((a, b) => a! + b!, 0) / validScores.length : 0;
+
                 const baseSalary = (scores.commitment / 100) * scores.marketRate;
 
                 const sam = (finalScore - 3) * ((par / 100) / 2);
