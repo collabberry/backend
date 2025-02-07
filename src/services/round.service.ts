@@ -9,7 +9,6 @@ import { AssessmentResponseModel } from '../models/rounds/assessmentResponse.mod
 import { CreateAssessmentModel } from '../models/rounds/createAssessment.model.js';
 import { CreatedResponseModel } from '../models/response_models/created_response_model.js';
 import {
-    beginningOfToday,
     calculateAssessmentRoundEndTime,
     calculateAssessmentRoundStartTime,
     calculateNextCompensationPeriodStartDay,
@@ -74,8 +73,10 @@ export class RoundService {
                 org.compensationStartDay!,
                 +org.assessmentStartDelayInDays!
             );
+            
+            const utcNow = new Date();
 
-            if (startRoundDate >= beginningOfToday() && startRoundDate <= sevenDaysFromNow) {
+            if (startRoundDate >= utcNow && startRoundDate <= sevenDaysFromNow) {
                 const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
 
                 const nextCycleStartDate = calculateNextCompensationPeriodStartDay(
@@ -391,11 +392,12 @@ export class RoundService {
             return ResponseModel.createError(new Error('Assessor not found'), 404);
         }
 
+        const utcNow = new Date();
         const currentRound = await this.roundsRepository.findOne({
             where: {
                 organization: { id: assessor.organization.id },
-                startDate: LessThanOrEqual(beginningOfToday()),
-                endDate: MoreThanOrEqual(endOfToday())
+                startDate: LessThanOrEqual(utcNow),
+                endDate: MoreThanOrEqual(utcNow)
             }
         });
 
