@@ -8,7 +8,6 @@ import { Agreement, ContributorRoundCompensation, Invitation, Organization, Roun
 import { OrgDetailsModel, OrgModel } from '../models/org/editOrg.model.js';
 import { CreateAgreementModel } from '../models/org/createAgreement.model.js';
 import {
-    beginningOfToday,
     calculateAssessmentRoundEndTime,
     calculateAssessmentRoundStartTime
 } from '../utils/roundTime.util.js';
@@ -132,9 +131,11 @@ export class OrganizationService {
                 organization: { id: org.id }
             }
         });
-        const ongoingRound = rounds.find((r) => r.isCompleted === false && r.startDate <= beginningOfToday());
+
+        const utcNow = new Date();
+        const ongoingRound = rounds.find((r) => r.isCompleted === false && r.startDate <= utcNow);
         if (!ongoingRound) {
-            const futureRound = rounds.find((r) => r.startDate >= beginningOfToday());
+            const futureRound = rounds.find((r) => r.startDate >= utcNow);
             if (futureRound) {
                 console.log('Updating existing round');
                 futureRound.startDate = calculateAssessmentRoundStartTime(
