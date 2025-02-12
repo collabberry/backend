@@ -3,6 +3,7 @@ export interface UserResponseModel {
     walletAddress?: string;
     username: string;
     email: string;
+    telegramHandle?: string;
     profilePicture?: string;
     isAdmin: boolean;
     totalFiat: number;

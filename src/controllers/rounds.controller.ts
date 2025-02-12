@@ -94,6 +94,29 @@ export class RoundsController {
         }
     }
 
+
+    public editAssessment = async (req: any, res: Response) => {
+        try {
+            const model: CreateAssessmentModel = req.body!;
+            const isValid = createAssessmentSchema.validate(model);
+            if (isValid.error) {
+                return res.status(400).json({ message: isValid.error.message });
+            }
+
+            const assessmentId: string = req.params.assessmentId;
+
+            const createdResponseModel = await this.roundService.editAssessment(
+                assessmentId,
+                (req as any).user.walletAddress,
+                model
+            );
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
     public getAssessments = async (req: any, res: Response) => {
         try {
             const roundId = req.params.roundId;

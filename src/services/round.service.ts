@@ -441,6 +441,54 @@ export class RoundService {
         await this.assessmentRepository.save(newAssessment);
         return ResponseModel.createSuccess({ id: newAssessment.id });
     }
+
+
+    public async editAssessment(assessmentId: string, walletAddress: string, assessmentData: CreateAssessmentModel):
+        Promise<ResponseModel<CreatedResponseModel | null>> {
+
+        const assessor = await this.userRepository.findOne({
+            where: { address: walletAddress.toLowerCase() },
+            relations: ['organization', 'agreement']
+        });
+
+        if (!assessor) {
+            return ResponseModel.createError(new Error('Assessor not found'), 404);
+        }
+
+        const assessment = await this.assessmentRepository.findOne({
+            where: { id: assessmentId },
+            relations: ['round']
+        });
+
+        if (!assessment) {
+            return ResponseModel.createError(new Error('Assessment not found'), 404);
+        }
+
+        const utcNow = new Date();
+        const currentRound = await this.roundsRepository.findOne({
+            where: {
+                organization: { id: assessor.organization.id },
+                startDate: LessThanOrEqual(utcNow),
+                endDate: MoreThanOrEqual(utcNow)
+            }
+        });
+
+        if (!currentRound) {
+            return ResponseModel.createError(new Error('No active round found for the organization'), 400);
+        }
+
+        if (assessment!.round.id !== currentRound!.id) {
+            return ResponseModel.createError(new Error('Assessment not in current round'), 400);
+        }
+
+        assessment.cultureScore = assessmentData.cultureScore;
+        assessment.workScore = assessmentData.workScore;
+        assessment.feedbackPositive = assessmentData.feedbackPositive;
+        assessment.feedbackNegative = assessmentData.feedbackNegative;
+
+        await this.assessmentRepository.save(assessment);
+        return ResponseModel.createSuccess({ id: assessment.id });
+    }
     public async getAssessments(roundId: string, assessorId: string | null = null, assessedId: string | null = null)
         : Promise<ResponseModel<AssessmentResponseModel[] | null>> {
 
