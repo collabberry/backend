@@ -23,6 +23,9 @@ export class Organization {
     @Column({ type: 'int', default: 0 })
     totalFunds!: number;
 
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    createdOn!: Date;
+
     @Column('enum', { enum: CompensationPeriod, nullable: true })
     compensationPeriod!: CompensationPeriod | null;
 

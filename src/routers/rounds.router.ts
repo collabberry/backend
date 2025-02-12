@@ -19,6 +19,7 @@ export class RoundsRouter {
     this._router.get('/:roundId', jwtMiddleware, this.roundsController.getRoundById);
     this._router.post('/assess', jwtMiddleware, this.roundsController.addAssessment);
     this._router.get('/:roundId/assessments', jwtMiddleware, this.roundsController.getAssessments);
+    this._router.put('/:roundId/assessments/:assessmentId', jwtMiddleware, this.roundsController.editAssessment);
     this._router.post('/:roundId/assessments/remind', jwtMiddleware, this.roundsController.remind);
     this._router.post('/:roundId/txHash', jwtMiddleware, this.roundsController.addTokenMintTx);
   }

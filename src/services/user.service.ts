@@ -91,6 +91,7 @@ export class UserService {
         user.address = userData.walletAddress!.toLowerCase();
         user.username = userData.username;
         user.email = userData.email;
+        user.telegramHandle = userData.telegramHandle;
         user.profilePicture = userData.profilePicture;
         user.isAdmin = false;
 
@@ -120,7 +121,7 @@ export class UserService {
         const contributions = await contributionsRepo.find({ where: { contributor: { id: user.id } } });
         let totalFiat = 0;
         if (contributions.length > 0) {
-            totalFiat = contributions.reduce((acc, curr) => acc + curr.fiat, 0);
+            totalFiat = contributions.reduce((acc, curr) => acc + +curr.fiat, 0);
         }
 
         const responseModel: UserResponseModel = {
@@ -128,6 +129,7 @@ export class UserService {
             walletAddress: user.address,
             username: user.username,
             email: user.email,
+            telegramHandle: user.telegramHandle,
             profilePicture: user.profilePicture,
             isAdmin: user.isAdmin,
             totalFiat,
