@@ -62,7 +62,6 @@ export class RoundService {
                 .getMany();
         }
         for (const org of orgs) {
-            console.log(`[${new Date()}][createRounds] Creating Round for : ${org.id}`);
 
             if (!org.compensationPeriod) {
                 continue;
@@ -76,7 +75,8 @@ export class RoundService {
             
             const utcNow = new Date();
 
-            if (startRoundDate >= utcNow && startRoundDate <= sevenDaysFromNow) {
+            if (startRoundDate.getDate() >= utcNow.getDate() && startRoundDate.getDate() <= sevenDaysFromNow.getDate()) {
+                console.log(`[${new Date()}][createRounds] Creating Round for : ${org.id}`);
                 const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
 
                 const nextCycleStartDate = calculateNextCompensationPeriodStartDay(
