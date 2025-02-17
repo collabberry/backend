@@ -72,10 +72,11 @@ export class RoundService {
                 org.compensationStartDay!,
                 +org.assessmentStartDelayInDays!
             );
-            
+
             const utcNow = new Date();
 
-            if (startRoundDate.getDate() >= utcNow.getDate() && startRoundDate.getDate() <= sevenDaysFromNow.getDate()) {
+            if (startRoundDate.getDate() >= utcNow.getDate()
+                && startRoundDate.getDate() <= sevenDaysFromNow.getDate()) {
                 console.log(`[${new Date()}][createRounds] Creating Round for : ${org.id}`);
                 const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
 
