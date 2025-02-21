@@ -32,7 +32,8 @@ export class EmailService {
             path.join(__dirname, '..', 'emailTemplates', 'roundStartedEmail.html'),
             {
                 contributor_name: `${username}`,
-                organization_name: `${orgName}`
+                organization_name: `${orgName}`,
+                assessment_dashboard_link: 'https://beta.collabberry.xyz/assessment'
             }
         );
     }
@@ -57,7 +58,8 @@ export class EmailService {
             path.join(__dirname, '..', 'emailTemplates', 'assessmentReminderEmail.html'),
             {
                 contributor_name: `${username}`,
-                organization_name: `${orgName}`
+                organization_name: `${orgName}`,
+                assessment_dashboard_link: 'https://beta.collabberry.xyz/assessment'
             }
         );
     }
