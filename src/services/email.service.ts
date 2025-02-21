@@ -69,6 +69,10 @@ export class EmailService {
         templateVariables: Record<string, string>
     ): Promise<void> {
         try {
+            if (process.env.EMAILS_ENABLED !== 'true') {
+                return;
+            }
+
             // Read the HTML template
             const data: string = await new Promise((resolve, reject) => {
                 fs.readFile(templatePath, 'utf8', (err, fileData) => {
