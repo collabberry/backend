@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { dirname } from 'desm';
 import * as dotenv from 'dotenv';
+import postmark from 'postmark';
 
 // Initialize configuration
 dotenv.config();
@@ -31,7 +32,8 @@ export class EmailService {
             path.join(__dirname, '..', 'emailTemplates', 'roundStartedEmail.html'),
             {
                 contributor_name: `${username}`,
-                organization_name: `${orgName}`
+                organization_name: `${orgName}`,
+                assessment_dashboard_link: 'https://beta.collabberry.xyz/assessment'
             }
         );
     }
@@ -56,49 +58,61 @@ export class EmailService {
             path.join(__dirname, '..', 'emailTemplates', 'assessmentReminderEmail.html'),
             {
                 contributor_name: `${username}`,
-                organization_name: `${orgName}`
+                organization_name: `${orgName}`,
+                assessment_dashboard_link: 'https://beta.collabberry.xyz/assessment'
             }
         );
     }
 
-    private async sendEmail(to: string, subject: string, templatePath: string, templateVariables: any): Promise<void> {
-        // Read the HTML template
-        let data: string = await new Promise((resolve, reject) => {
-            fs.readFile(templatePath, 'utf8', (err: NodeJS.ErrnoException | null, data: string) => {
-                if (err) {
-                    console.error('Error reading HTML template:', err);
-                    reject(err);
-                    return;
-                }
+    private async sendEmail(
+        to: string,
+        subject: string,
+        templatePath: string,
+        templateVariables: Record<string, string>
+    ): Promise<void> {
+        try {
+            if (process.env.EMAILS_ENABLED !== 'true') {
+                return;
+            }
 
-                resolve(data);
+            // Read the HTML template
+            const data: string = await new Promise((resolve, reject) => {
+                fs.readFile(templatePath, 'utf8', (err, fileData) => {
+                    if (err) {
+                        console.error('Error reading HTML template:', err);
+                        reject(err);
+                        return;
+                    }
+
+                    resolve(fileData);
+                });
             });
-        });
 
-        // Replace placeholders with actual values
-        for (const key in templateVariables) {
-            if (templateVariables.hasOwnProperty(key)) {
-                const placeholder = `{{${key}}}`;
-                data = data.replace(new RegExp(placeholder, 'g'), templateVariables[key]);
+            // Replace placeholders with actual values
+            let htmlContent = data;
+            for (const key in templateVariables) {
+                if (Object.prototype.hasOwnProperty.call(templateVariables, key)) {
+                    const placeholder = `{{${key}}}`;
+                    htmlContent = htmlContent.replace(new RegExp(placeholder, 'g'), templateVariables[key]);
+                }
             }
+
+            // Initialize Postmark client
+            const client = new postmark.ServerClient(process.env.POSTMARK_API_KEY as string);
+
+            // Send the email via Postmark
+            await client.sendEmail({
+                From: 'hi@collabberry.xyz',
+                To: to,
+                Subject: subject,
+                HtmlBody: htmlContent
+            });
+
+            console.log(`Email sent successfully to ${to}`);
+        } catch (error) {
+            console.error('Error sending email:', error);
         }
-
-        // Email options
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to,
-            subject,
-            html: data
-        };
-
-        // Send the email
-        this.transporter.sendMail(mailOptions, (error: any, info: any) => {
-            if (error) {
-                console.error('Error sending email:', error);
-            } else {
-                console.log('Email sent:', info.response);
-            }
-        });
     }
+
 
 }
