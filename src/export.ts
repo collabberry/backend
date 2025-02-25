@@ -50,7 +50,7 @@ async function fetchOrgReportData(): Promise<any[]> {
         const agreements = org.contributors ? org.contributors.filter(u => u.agreement).map(u => u.agreement) : [];
 
         // Get admin information (assuming at least one contributor has isAdmin === true)
-        const adminUsers = org.contributors ? org.contributors.filter(u => u.isAdmin) : [];
+        const adminUsers = org.contributors ?? []; // ? org.contributors.filter(u => u.isAdmin) : [];
         const admin = adminUsers[0] || {};
 
         return {
