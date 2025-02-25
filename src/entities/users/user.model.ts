@@ -29,9 +29,6 @@ export class User {
     @JoinColumn({ name: 'agreement_id' })
     agreement?: Relation<Agreement>;
 
-    @Column({ type: 'boolean', default: false })
-    isAdmin!: boolean;
-
     @ManyToOne(() => Organization, { nullable: true, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'organization_id' })
     organization!: Relation<Organization>;

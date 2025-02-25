@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { injectable } from 'inversify';
 import { OrganizationController } from '../controllers/organization.controller.js';
 import { jwtMiddleware } from '../middleware/jwt.middleware.js';
+import { adminMiddleware } from '../middleware/admin.middleware.js';
 import multer from 'multer';
 
 @injectable()
@@ -14,25 +15,19 @@ export class OrgRouter {
   }
 
   private init(): void {
-
     const upload = multer();
 
-    // Org Details
-    this._router.post('/', jwtMiddleware, upload.single('logo'), this.orgController.createOrg);
-    // this._router.post('/', jwtMiddleware, this.orgController.createOrg);
-    this._router.put('/', jwtMiddleware, upload.single('logo'), this.orgController.editOrg);
-
+    // Regular authenticated routes
     this._router.get('/invitation', jwtMiddleware, this.orgController.getInvitationToken);
-    this._router.post('/agreement', jwtMiddleware, this.orgController.addAgreement);
-    this._router.put('/agreement/:agreementId', jwtMiddleware, this.orgController.editAgreement);
-
     this._router.get('/:orgId', jwtMiddleware, this.orgController.getOrg);
-
-    // Contributors
-    this._router.get('/invitation', jwtMiddleware, this.orgController.getInvitationToken);
-    this._router.post('/agreement', jwtMiddleware, this.orgController.addAgreement);
     this._router.get('/contributors/:contributorId/agreements', jwtMiddleware, this.orgController.getContribAgreement);
     this._router.get('/contributors/myScores', jwtMiddleware, this.orgController.getMyScores);
+
+    // Admin-only routes now use the smart contract check
+    this._router.post('/', jwtMiddleware, upload.single('logo'), adminMiddleware, this.orgController.createOrg);
+    this._router.put('/', jwtMiddleware, upload.single('logo'), adminMiddleware, this.orgController.editOrg);
+    this._router.post('/agreement', jwtMiddleware, adminMiddleware, this.orgController.addAgreement);
+    this._router.put('/agreement/:agreementId', jwtMiddleware, adminMiddleware, this.orgController.editAgreement);
   }
 
   public get router(): Router {

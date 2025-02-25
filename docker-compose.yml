@@ -23,6 +23,7 @@ services:
       DB_PASS: password
       DB_NAME: collabberry
       DB_UNAME: root
+      RPC_URL: https://arbitrum-sepolia-rpc.publicnode.com
     ports:
       - 3000:3000
     depends_on:

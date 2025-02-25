@@ -26,6 +26,7 @@ services:
       # DB_PASS:  # Read from secrets
       DB_NAME: collabberry
       DB_UNAME: root
+      RPC_URL: https://arb1.arbitrum.io/rpc
     depends_on:
       - mysql
   
