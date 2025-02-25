@@ -12,6 +12,7 @@ import {
     calculateAssessmentRoundStartTime
 } from '../utils/roundTime.util.js';
 import { RoundService } from './round.service.js';
+import { TeamPointsService } from './teamPoints.service.js';
 
 
 @injectable()
@@ -60,9 +61,6 @@ export class OrganizationService {
 
         await this.organizationRepository.save(organization);
 
-        creator.isAdmin = true;
-        await this.userRepository.save(creator);
-
         return ResponseModel.createSuccess({ id: organization.id });
     }
 
@@ -74,18 +72,15 @@ export class OrganizationService {
     ): Promise<ResponseModel<any | null>> {
 
         const adminUser = await this.userRepository.findOne({
-            where: { address: userWalletAddress.toLowerCase(), isAdmin: true },
+            where: { address: userWalletAddress.toLowerCase() },
             relations: ['organization']
         });
-        if (!adminUser || !adminUser.isAdmin || !adminUser.organization) {
-            return ResponseModel.createError(new Error('Only organization admins can generate invitation links.'), 401);
-        }
 
         const token = uuidv4();
         const invitation = this.invitationRepository.create({
             token,
-            organization: adminUser.organization,
-            invitedBy: adminUser,
+            organization: user?.organization!,
+            invitedBy: user!,
             usageLimit: 10
         });
         await this.invitationRepository.save(invitation);
@@ -102,19 +97,12 @@ export class OrganizationService {
         walletAddress: string,
         orgModel: OrgModel
     ): Promise<ResponseModel<CreatedResponseModel | null>> {
-        const admin = await this.userRepository.findOne({
+       
+        const user = await this.userRepository.findOne({
             where: { address: walletAddress.toLowerCase() },
             relations: ['organization']
         });
-        if (!admin || !admin.isAdmin || !admin.organization) {
-            return ResponseModel.createError(
-                new Error('Only organization admins can update organization details.'), 401);
-        }
-
-        const org = await this.organizationRepository.findOne({ where: { id: admin.organization.id } });
-        if (!org) {
-            return ResponseModel.createError(new Error('Organization not found!'), 404);
-        }
+        const org = user?.organization!;
 
         org.name = orgModel.name;
         org.logo = orgModel.logo;
@@ -207,20 +195,18 @@ export class OrganizationService {
     public async addAgreement(walletAddress: string, agreementData: CreateAgreementModel)
         : Promise<ResponseModel<CreatedResponseModel | null>> {
 
-        const admin = await this.userRepository.findOne({
+        const user = await this.userRepository.findOne({
             where: { address: walletAddress.toLowerCase() },
             relations: ['organization']
         });
-        if (!admin || !admin.organization || !admin.isAdmin) {
-            return ResponseModel.createError(new Error('Only organization admins can add agreements.'), 401);
-        }
+        const org = user?.organization!;
 
         const agreementUser = await this.userRepository.findOne({
             where: { id: agreementData.userId },
             relations: ['organization']
         });
         if (!agreementUser ||
-            agreementUser.organization.id !== admin.organization.id) {
+            agreementUser.organization.id !== org.id) {
             return ResponseModel.createError(new Error('User not found or not part of the organization!'), 404);
         }
 
@@ -251,14 +237,6 @@ export class OrganizationService {
      */
     public async editAgreement(walletAddress: string, agreeementId: string, agreementData: CreateAgreementModel)
         : Promise<ResponseModel<CreatedResponseModel | null>> {
-
-        const admin = await this.userRepository.findOne({
-            where: { address: walletAddress.toLowerCase() },
-            relations: ['organization']
-        });
-        if (!admin || !admin.organization || !admin.isAdmin) {
-            return ResponseModel.createError(new Error('Only organization admins can add agreements.'), 401);
-        }
 
         const agreement = await this.agreementRepository.findOne({
             where: { id: agreeementId }

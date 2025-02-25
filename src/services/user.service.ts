@@ -9,6 +9,7 @@ import { SiweMessage } from 'siwe';
 import { UserResponseModel } from '../models/user/userDetails.model.js';
 import { EmailService } from './email.service.js';
 import { AppDataSource } from '../data-source.js';
+import { TeamPointsService } from './teamPoints.service.js';
 import {
     ContributorRoundCompensation,
     Invitation,
@@ -27,7 +28,7 @@ export class UserService {
     private invitationRepository;
     private walletNonceRepository;
 
-    constructor(private emailService: EmailService) {
+    constructor(private emailService: EmailService, private teamPointsService: TeamPointsService) {
         this.userRepository = AppDataSource.getRepository(User);
         this.invitationRepository = AppDataSource.getRepository(Invitation);
         this.walletNonceRepository = AppDataSource.getRepository(WalletNonce);
@@ -93,7 +94,6 @@ export class UserService {
         user.email = userData.email;
         user.telegramHandle = userData.telegramHandle;
         user.profilePicture = userData.profilePicture;
-        user.isAdmin = false;
 
         if (organization) {
             user.organization = organization;
@@ -113,6 +113,8 @@ export class UserService {
             relations: ['agreement', 'organization']
         });
 
+        const isAdmin = await this.teamPointsService.isAdmin(walletAddress);
+
         if (!user) {
             return ResponseModel.createError(new Error('User not found'), 404);
         }
@@ -131,7 +133,7 @@ export class UserService {
             email: user.email,
             telegramHandle: user.telegramHandle,
             profilePicture: user.profilePicture,
-            isAdmin: user.isAdmin,
+            isAdmin,
             totalFiat,
             organization: user.organization && {
                 id: user.organization!.id,
