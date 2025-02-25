@@ -71,7 +71,7 @@ export class OrganizationService {
         userWalletAddress: string
     ): Promise<ResponseModel<any | null>> {
 
-        const adminUser = await this.userRepository.findOne({
+        const user = await this.userRepository.findOne({
             where: { address: userWalletAddress.toLowerCase() },
             relations: ['organization']
         });
@@ -97,7 +97,7 @@ export class OrganizationService {
         walletAddress: string,
         orgModel: OrgModel
     ): Promise<ResponseModel<CreatedResponseModel | null>> {
-       
+
         const user = await this.userRepository.findOne({
             where: { address: walletAddress.toLowerCase() },
             relations: ['organization']
