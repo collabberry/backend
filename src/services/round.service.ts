@@ -59,13 +59,10 @@ export class RoundService {
                         .getQuery();
                     return `NOT EXISTS (${subQuery})`;
                 })
+                .andWhere('organization.compensationStartDay IS NOT NULL')
                 .getMany();
         }
         for (const org of orgs) {
-
-            if (!org.compensationPeriod) {
-                continue;
-            }
 
             const startRoundDate = calculateAssessmentRoundStartTime(
                 +org.compensationPeriod!,
@@ -87,7 +84,7 @@ export class RoundService {
                         org.compensationPeriod!
                     );
                     console.log(`[${new Date()}][createRounds] Saving Round for: ${org.id}`);
-    
+
                     const round = this.roundsRepository.create({
                         organization: org,
                         roundNumber: (org.rounds?.length ?? 0) + 1,
@@ -96,11 +93,11 @@ export class RoundService {
                         compensationCycleStartDate: org.compensationStartDay!,
                         compensationCycleEndDate: nextCycleStartDate
                     });
-                
+
                     console.log(`[${new Date()}][createRounds] Round Data Before Save:`, round);
-                
+
                     await this.roundsRepository.save(round);
-                    
+
                     console.log(`[${new Date()}][createRounds] Round Created Successfully: ${round.id}`);
 
                     const o = await this.organizationRepository.findOne({
