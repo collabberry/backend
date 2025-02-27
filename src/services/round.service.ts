@@ -86,7 +86,8 @@ export class RoundService {
                         org.compensationStartDay!,
                         org.compensationPeriod!
                     );
-
+                    console.log(`[${new Date()}][createRounds] Saving Round for: ${org.id}`);
+    
                     const round = this.roundsRepository.create({
                         organization: org,
                         roundNumber: (org.rounds?.length ?? 0) + 1,
@@ -95,8 +96,11 @@ export class RoundService {
                         compensationCycleStartDate: org.compensationStartDay!,
                         compensationCycleEndDate: nextCycleStartDate
                     });
-
+                
+                    console.log(`[${new Date()}][createRounds] Round Data Before Save:`, round);
+                
                     await this.roundsRepository.save(round);
+                    
                     console.log(`[${new Date()}][createRounds] Round Created Successfully: ${round.id}`);
 
                     const o = await this.organizationRepository.findOne({
@@ -106,6 +110,8 @@ export class RoundService {
                     o!.compensationStartDay = nextCycleStartDate;
 
                     await this.organizationRepository.save(o!);
+                    console.log(`[${new Date()}][createRounds] Organization Editted successfully`);
+
                 } catch (error) {
                     console.error(`[${new Date()}][createRounds] Error saving round:`, error);
                 }
