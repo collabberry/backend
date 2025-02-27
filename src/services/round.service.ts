@@ -76,8 +76,8 @@ export class RoundService {
             
             const utcNow = new Date();
 
-            if (startRoundDate.getDate() >= utcNow.getDate()
-                && startRoundDate.getDate() <= sevenDaysFromNow.getDate()) {
+            if (startRoundDate >= utcNow
+                && startRoundDate <= sevenDaysFromNow) {
                 console.log(`[${new Date()}][createRounds] Creating Round for : ${org.id}`);
                 const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
 
@@ -95,9 +95,12 @@ export class RoundService {
                     compensationCycleEndDate: nextCycleStartDate
                 });
 
-                await this.roundsRepository.save(round);
-                console.log(`[${new Date()}][createRounds] Round Created : ${round.id}`);
-
+                try {
+                    await this.roundsRepository.save(round);
+                    console.log(`[${new Date()}][createRounds] Round Created Successfully: ${round.id}`);
+                } catch (error) {
+                    console.error(`[${new Date()}][createRounds] Error saving round:`, error);
+                }
                 const o = await this.organizationRepository.findOne({
                     where: { id: org.id }
                 });
