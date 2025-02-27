@@ -78,37 +78,38 @@ export class RoundService {
 
             if (startRoundDate >= utcNow
                 && startRoundDate <= sevenDaysFromNow) {
-                console.log(`[${new Date()}][createRounds] Creating Round for : ${org.id}`);
-                const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
-
-                const nextCycleStartDate = calculateNextCompensationPeriodStartDay(
-                    org.compensationStartDay!,
-                    org.compensationPeriod!
-                );
-
-                const round = this.roundsRepository.create({
-                    organization: org,
-                    roundNumber: (org.rounds?.length ?? 0) + 1,
-                    startDate: startRoundDate,
-                    endDate: endRoundDate,
-                    compensationCycleStartDate: org.compensationStartDay!,
-                    compensationCycleEndDate: nextCycleStartDate
-                });
-
                 try {
+
+                    console.log(`[${new Date()}][createRounds] Creating Round for : ${org.id}`);
+                    const endRoundDate = calculateAssessmentRoundEndTime(startRoundDate, org.assessmentDurationInDays!);
+
+                    const nextCycleStartDate = calculateNextCompensationPeriodStartDay(
+                        org.compensationStartDay!,
+                        org.compensationPeriod!
+                    );
+
+                    const round = this.roundsRepository.create({
+                        organization: org,
+                        roundNumber: (org.rounds?.length ?? 0) + 1,
+                        startDate: startRoundDate,
+                        endDate: endRoundDate,
+                        compensationCycleStartDate: org.compensationStartDay!,
+                        compensationCycleEndDate: nextCycleStartDate
+                    });
+
                     await this.roundsRepository.save(round);
                     console.log(`[${new Date()}][createRounds] Round Created Successfully: ${round.id}`);
+
+                    const o = await this.organizationRepository.findOne({
+                        where: { id: org.id }
+                    });
+
+                    o!.compensationStartDay = nextCycleStartDate;
+
+                    await this.organizationRepository.save(o!);
                 } catch (error) {
                     console.error(`[${new Date()}][createRounds] Error saving round:`, error);
                 }
-                const o = await this.organizationRepository.findOne({
-                    where: { id: org.id }
-                });
-
-                o!.compensationStartDay = nextCycleStartDate;
-
-                await this.organizationRepository.save(o!);
-
 
                 // Notify contributors via email
                 if (org.contributors) {
