@@ -24,7 +24,7 @@ export class OrgRouter {
     this._router.get('/contributors/myScores', jwtMiddleware, this.orgController.getMyScores);
 
     // Admin-only routes now use the smart contract check
-    this._router.post('/', jwtMiddleware, upload.single('logo'), adminMiddleware, this.orgController.createOrg);
+    this._router.post('/', jwtMiddleware, upload.single('logo'), this.orgController.createOrg);
     this._router.put('/', jwtMiddleware, upload.single('logo'), adminMiddleware, this.orgController.editOrg);
     this._router.post('/agreement', jwtMiddleware, adminMiddleware, this.orgController.addAgreement);
     this._router.put('/agreement/:agreementId', jwtMiddleware, adminMiddleware, this.orgController.editAgreement);
