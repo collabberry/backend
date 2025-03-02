@@ -63,7 +63,6 @@ export class RoundService {
                 .getMany();
         }
         for (const org of orgs) {
-            console.log(`[${new Date()}][createRounds] Creating Round for : ${org.id}`);
 
             const startRoundDate = calculateAssessmentRoundStartTime(
                 +org.compensationPeriod!,
