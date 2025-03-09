@@ -40,7 +40,7 @@ export class RoundService {
         if (orgId !== undefined) {
             const org = await this.organizationRepository.findOne({
                 where: { id: orgId },
-                relations: ['rounds']
+                relations: ['rounds', 'contributors']
             });
             if (!org) {
                 return;
@@ -50,6 +50,7 @@ export class RoundService {
             orgs = await this.organizationRepository
                 .createQueryBuilder('organization')
                 .leftJoin('organization.rounds', 'round')
+                .leftJoinAndSelect('organization.contributors', 'contributors')
                 .where(qb => {
                     const subQuery = qb.subQuery()
                         .select('1')
