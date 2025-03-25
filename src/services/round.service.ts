@@ -111,11 +111,11 @@ export class RoundService {
                 }
 
                 // Notify contributors via email
-                if (org.contributors) {
-                    org.contributors.forEach((user) =>
-                        this.emailService.sendRoundStarted(user.email, user.username, org.name)
-                    );
-                }
+                // if (org.contributors) {
+                //     org.contributors.forEach((user) =>
+                //         this.emailService.sendRoundStarted(user.email, user.username, org.name)
+                //     );
+                // }
             }
         }
     }
