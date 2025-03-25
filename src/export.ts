@@ -51,8 +51,9 @@ async function fetchOrgReportData(): Promise<any[]> {
 
         // Get admin information (assuming at least one contributor has isAdmin === true)
         const adminUsers = org.contributors ?? []; // ? org.contributors.filter(u => u.isAdmin) : [];
-        const admin = adminUsers[0] || {};
-
+        const admin = adminUsers
+            .slice()
+            .sort((a, b) => a.registeredOn.getTime() - b.registeredOn.getTime())[0] || {};
         return {
             orgName: org.name,
             contributorCount,
