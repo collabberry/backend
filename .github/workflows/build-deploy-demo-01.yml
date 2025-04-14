@@ -45,7 +45,8 @@ jobs:
         ssh -i ~/.ssh/id_rsa ${{ vars.EC2_USERNAME }}@${{ secrets.EC2_HOST }} '
           cd /home/deployment/ &&
           docker compose -f docker-compose.be.yml pull &&
-          docker compose -f docker-compose.be.yml up -d
+          docker compose -f docker-compose.be.yml up -d &&
+          docker restart proxy-service
         '
 
     - name: Clean up SSH key
