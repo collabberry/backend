@@ -6,7 +6,7 @@ export const adminMiddleware = async (req: Request, res: Response, next: NextFun
   try {
     // Ensure the JWT middleware has run first and set the user
     if (!(req as any).user || !(req as any).user.walletAddress) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(403).json({ message: 'Authentication required' });
     }
 
     const walletAddress = (req as any).user.walletAddress;
