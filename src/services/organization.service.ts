@@ -45,7 +45,7 @@ export class OrganizationService {
         });
 
         if (!creator) {
-            return ResponseModel.createError(new Error('Creator not registered!'), 401);
+            return ResponseModel.createError(new Error('Creator not registered!'), 403);
         }
 
         const existingOrg = await this.organizationRepository.findOne({ where: { name: orgModel.name } });

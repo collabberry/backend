@@ -181,14 +181,14 @@ export class UserService {
         try {
             const res = await siweMessage.verify({ signature });
             if (!res) {
-                return ResponseModel.createError(new Error('Invalid signature'), 401);
+                return ResponseModel.createError(new Error('Invalid signature'), 403);
             }
 
             const userToEncode = { walletAddress: message.address } as any;
             const token = jwt.sign(userToEncode, process.env.JWT_SECRET!, { expiresIn: '168h' });
             return ResponseModel.createSuccess({ token }, 200);
         } catch (error: any) {
-            return ResponseModel.createError(error, 401);
+            return ResponseModel.createError(error, 403);
         }
     }
 }

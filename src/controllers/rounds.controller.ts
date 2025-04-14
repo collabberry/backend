@@ -19,7 +19,7 @@ export class RoundsController {
             const walletAddress = req.user.walletAddress;
             const responseModel = await this.userService.getByWalletAddress(walletAddress);
             if (!responseModel.data?.organization?.id) {
-                return res.status(401).json({ message: 'User does not have an org' });
+                return res.status(403).json({ message: 'User does not have an org' });
             }
             const createdResponseModel = await this.roundService.getCurrentRound(responseModel.data?.organization?.id);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
@@ -34,7 +34,7 @@ export class RoundsController {
             const walletAddress = req.user.walletAddress;
             const responseModel = await this.userService.getByWalletAddress(walletAddress);
             if (!responseModel.data?.organization?.id) {
-                return res.status(401).json({ message: 'User does not have an org' });
+                return res.status(403).json({ message: 'User does not have an org' });
             }
             const createdResponseModel = await this.roundService.getRounds(responseModel.data?.organization?.id);
             res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
@@ -61,10 +61,10 @@ export class RoundsController {
             const walletAddress = req.user.walletAddress;
             const responseModel = await this.userService.getByWalletAddress(walletAddress);
             if (!responseModel.data?.isAdmin) {
-                return res.status(401).json({ message: 'User is not an admin' });
+                return res.status(403).json({ message: 'User is not an admin' });
             }
             if (!responseModel.data?.organization?.id) {
-                return res.status(401).json({ message: 'User does not have an org' });
+                return res.status(403).json({ message: 'User does not have an org' });
             }
 
             const createdResponseModel = await this.roundService
@@ -148,10 +148,10 @@ export class RoundsController {
             const walletAddress = req.user.walletAddress;
             const responseModel = await this.userService.getByWalletAddress(walletAddress);
             if (!responseModel.data?.isAdmin) {
-                return res.status(401).json({ message: 'User is not an admin' });
+                return res.status(403).json({ message: 'User is not an admin' });
             }
             if (!responseModel.data?.organization?.id) {
-                return res.status(401).json({ message: 'User does not have an org' });
+                return res.status(403).json({ message: 'User does not have an org' });
             }
 
             const txId = req.body.txId;
