@@ -27,7 +27,7 @@ export class User {
 
     @OneToOne(() => Agreement, { nullable: true, cascade: true })
     @JoinColumn({ name: 'agreement_id' })
-    agreement?: Relation<Agreement>;
+    agreement?: Relation<Agreement> | null;
 
     @ManyToOne(() => Organization, { nullable: true, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'organization_id' })

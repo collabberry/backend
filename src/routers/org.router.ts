@@ -28,6 +28,7 @@ export class OrgRouter {
     this._router.put('/', jwtMiddleware, upload.single('logo'), adminMiddleware, this.orgController.editOrg);
     this._router.post('/agreement', jwtMiddleware, adminMiddleware, this.orgController.addAgreement);
     this._router.put('/agreement/:agreementId', jwtMiddleware, adminMiddleware, this.orgController.editAgreement);
+    this._router.delete('/agreement/:agreementId', jwtMiddleware, adminMiddleware, this.orgController.removeAgreement);
   }
 
   public get router(): Router {
