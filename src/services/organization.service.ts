@@ -57,6 +57,7 @@ export class OrganizationService {
         organization.name = orgModel.name;
         organization.logo = orgModel.logo;
         organization.teamPointsContractAddress = orgModel.teamPointsContractAddress;
+        organization.chainId = orgModel.chainId;
         organization.contributors = [creator];
 
         await this.organizationRepository.save(organization);
@@ -168,6 +169,7 @@ export class OrganizationService {
             assessmentDurationInDays: org.assessmentDurationInDays,
             assessmentStartDelayInDays: org.assessmentStartDelayInDays,
             teamPointsContractAddress: org.teamPointsContractAddress,
+            chainId: org.chainId,
             totalFunds: org.totalFunds,
             totalDistributedFiat: allCompensation.reduce((acc, c) => acc + +c.fiat, 0),
             contributors: org.contributors?.map((u) => ({
@@ -252,6 +254,37 @@ export class OrganizationService {
         agreement.commitment = agreementData.commitment;
 
         await this.agreementRepository.save(agreement);
+
+        return ResponseModel.createSuccess({ id: agreement.id });
+    }
+
+
+    /**
+     * Removes an agreement for a user in the organization
+     */
+    public async removeAgreement(walletAddress: string, agreeementId: string)
+        : Promise<ResponseModel<CreatedResponseModel | null>> {
+
+        const agreement = await this.agreementRepository.findOne({
+            where: { id: agreeementId },
+            relations: ['user', 'user.organization']
+        });
+        if (!agreement) {
+            return ResponseModel.createError(new Error('Agreement not found!'), 404);
+        }
+        const user = await this.userRepository.findOne({
+            where: { id: agreement.user.id },
+            relations: ['organization']
+        });
+        if (!user || user.organization.id !== agreement.user.organization.id) {
+            return ResponseModel.createError(new Error('User not found or not part of the organization!'), 404);
+        }
+        user.agreement = null;
+        await this.userRepository.save(user); // 👈 This flushes the FK to NULL
+
+        await this.agreementRepository.remove(agreement); // 👈 Now safe to delete
+
+        // await this.agreementRepository.delete(agreement);
 
         return ResponseModel.createSuccess({ id: agreement.id });
     }

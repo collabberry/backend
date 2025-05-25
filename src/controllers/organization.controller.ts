@@ -145,6 +145,21 @@ export class OrganizationController {
         }
     }
 
+
+    public removeAgreement = async (req: any, res: Response) => {
+        try {
+            const agreementId: string = req.params.agreementId;
+            const createdResponseModel = await this.organizationService.removeAgreement(
+                req.user.walletAddress,
+                agreementId);
+            res.status(createdResponseModel.statusCode).json(handleResponse(createdResponseModel));
+
+        } catch (error) {
+            console.error('Error editing an org:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    }
+
     public getContribAgreement = async (req: any, res: Response) => {
         try {
             const contributorId = req.params.contributorId;

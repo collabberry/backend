@@ -49,7 +49,7 @@ export class RoundService {
         } else {
             orgs = await this.organizationRepository
                 .createQueryBuilder('organization')
-                .leftJoin('organization.rounds', 'round')
+                .leftJoinAndSelect('organization.rounds', 'round')
                 .leftJoinAndSelect('organization.contributors', 'contributors')
                 .where(qb => {
                     const subQuery = qb.subQuery()

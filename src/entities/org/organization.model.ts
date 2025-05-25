@@ -14,6 +14,9 @@ export class Organization {
     @Column({ type: 'varchar', length: 255 })
     teamPointsContractAddress!: string;
 
+    @Column({ type: 'int', nullable: false, default: 42161 })
+    chainId!: number;
+
     @Column({ type: 'varchar', nullable: true })
     logo?: string;
 
