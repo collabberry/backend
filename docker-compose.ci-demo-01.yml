@@ -26,7 +26,9 @@ services:
       # DB_PASS:  # Read from secrets
       DB_NAME: collabberry
       DB_UNAME: root
-      RPC_URL: https://arb1.arbitrum.io/rpc
+      ARBITRUM_RPC_URL: https://arb1.arbitrum.io/rpc
+      ARBITRUM_SEPOLIA_RPC_URL: https://api.zan.top/arb-sepolia
+      CELO_RPC_URL: https://forno.celo.org
     depends_on:
       - mysql
   

@@ -23,7 +23,9 @@ services:
       DB_PASS: password
       DB_NAME: collabberry
       DB_UNAME: root
-      RPC_URL: https://arbitrum-sepolia-rpc.publicnode.com
+      ARBITRUM_RPC_URL: https://arb1.arbitrum.io/rpc
+      ARBITRUM_SEPOLIA_RPC_URL: https://api.zan.top/arb-sepolia
+      CELO_RPC_URL: https://forno.celo.org
     ports:
       - 3000:3000
     depends_on:
